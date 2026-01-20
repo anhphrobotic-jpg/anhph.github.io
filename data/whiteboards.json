@@ -1,0 +1,37 @@
+{
+  "whiteboards": [
+    {
+      "id": "board_1",
+      "projectId": "proj_1",
+      "title": "Model Architecture Sketch",
+      "description": "Initial design of LSTM architecture",
+      "canvasData": null,
+      "linkedPapers": ["paper_1"],
+      "tags": ["Architecture", "Design"],
+      "createdAt": 1705363200000,
+      "updatedAt": 1737331200000
+    },
+    {
+      "id": "board_2",
+      "projectId": "proj_1",
+      "title": "Dataset Analysis Notes",
+      "description": "Observations from exploratory data analysis",
+      "canvasData": null,
+      "linkedPapers": [],
+      "tags": ["Data", "Analysis"],
+      "createdAt": 1705449600000,
+      "updatedAt": 1737331200000
+    },
+    {
+      "id": "board_3",
+      "projectId": "proj_2",
+      "title": "Quantum Circuit Design",
+      "description": "Brainstorming quantum gate sequences",
+      "canvasData": null,
+      "linkedPapers": ["paper_3"],
+      "tags": ["Quantum", "Circuit"],
+      "createdAt": 1730505600000,
+      "updatedAt": 1737331200000
+    }
+  ]
+}

@@ -1,174 +1,114 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Research Project Manager</title>
+    <title>Research Workspace</title>
     <link rel="stylesheet" href="css/theme.css">
     <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="header-content">
-            <h1 class="logo">🔬 Research Manager</h1>
-            <div class="header-actions">
-                <button class="btn-icon" id="themeToggle" title="Toggle theme">
-                    <span class="theme-icon">🌙</span>
-                </button>
-                <button class="btn-icon" id="exportBtn" title="Export data">
-                    📥
-                </button>
-                <button class="btn-icon" id="importBtn" title="Import data">
-                    📤
-                </button>
-            </div>
-        </div>
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle">
+            <span class="hamburger"></span>
+        </button>
+        <h1 class="mobile-title">Research Workspace</h1>
+        <button class="mobile-theme-toggle" id="mobileThemeToggle">
+            <span class="theme-icon">🌙</span>
+        </button>
     </header>
 
-    <!-- Main Content -->
-    <main class="container">
-        <!-- Toolbar -->
-        <div class="toolbar">
-            <div class="search-bar">
-                <input 
-                    type="text" 
-                    id="searchInput" 
-                    placeholder="Search projects..." 
-                    class="search-input"
-                >
+    <!-- Main Layout -->
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-logo">
+                    <span class="logo-icon">📚</span>
+                    <span class="logo-text">Research</span>
+                </h1>
+                <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+                    <span class="theme-icon">🌙</span>
+                </button>
             </div>
-            <div class="filter-group">
-                <select id="statusFilter" class="filter-select">
-                    <option value="all">All Status</option>
-                    <option value="planning">Planning</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="done">Done</option>
-                </select>
-                <select id="tagFilter" class="filter-select">
-                    <option value="all">All Tags</option>
-                </select>
+
+            <nav class="sidebar-nav">
+                <a href="#dashboard" class="nav-item active" data-view="dashboard">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-label">Dashboard</span>
+                </a>
+                <a href="#projects" class="nav-item" data-view="projects">
+                    <span class="nav-icon">🎯</span>
+                    <span class="nav-label">Projects</span>
+                </a>
+                <a href="#tasks" class="nav-item" data-view="tasks">
+                    <span class="nav-icon">✓</span>
+                    <span class="nav-label">Tasks</span>
+                </a>
+                <a href="#papers" class="nav-item" data-view="papers">
+                    <span class="nav-icon">📄</span>
+                    <span class="nav-label">Papers</span>
+                </a>
+                <a href="#whiteboards" class="nav-item" data-view="whiteboards">
+                    <span class="nav-icon">🎨</span>
+                    <span class="nav-label">Whiteboards</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="export-btn" id="exportData" title="Export all data">
+                    📥 Export
+                </button>
+                <button class="import-btn" id="importData" title="Import data">
+                    📤 Import
+                </button>
             </div>
-            <button class="btn-primary" id="newProjectBtn">
-                + New Project
-            </button>
-        </div>
+        </aside>
 
-        <!-- Stats -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-value" id="totalProjects">0</div>
-                <div class="stat-label">Total Projects</div>
+        <!-- Main Content Area -->
+        <main class="main-content" id="mainContent">
+            <!-- Dynamic content loaded here -->
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+                <p>Loading...</p>
             </div>
-            <div class="stat-card">
-                <div class="stat-value" id="inProgressProjects">0</div>
-                <div class="stat-label">In Progress</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="completedProjects">0</div>
-                <div class="stat-label">Completed</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="avgProgress">0%</div>
-                <div class="stat-label">Avg Progress</div>
-            </div>
-        </div>
-
-        <!-- Projects Grid -->
-        <div class="projects-grid" id="projectsGrid">
-            <!-- Projects will be rendered here -->
-        </div>
-
-        <!-- Empty State -->
-        <div class="empty-state" id="emptyState" style="display: none;">
-            <div class="empty-icon">📁</div>
-            <h3>No projects yet</h3>
-            <p>Create your first research project to get started</p>
-            <button class="btn-primary">+ Create Project</button>
-        </div>
-    </main>
-
-    <!-- Modal: New/Edit Project -->
-    <div class="modal" id="projectModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitle">New Project</h2>
-                <button class="btn-close" id="closeModal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="projectForm">
-                    <div class="form-group">
-                        <label for="projectTitle">Project Title *</label>
-                        <input 
-                            type="text" 
-                            id="projectTitle" 
-                            required 
-                            placeholder="Enter project title"
-                            class="form-input"
-                        >
-                    </div>
-
-                    <div class="form-group">
-                        <label for="projectDescription">Description</label>
-                        <textarea 
-                            id="projectDescription" 
-                            rows="3" 
-                            placeholder="Brief description of your research project"
-                            class="form-input"
-                        ></textarea>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="projectStatus">Status</label>
-                            <select id="projectStatus" class="form-input">
-                                <option value="planning">Planning</option>
-                                <option value="in-progress">In Progress</option>
-                                <option value="done">Done</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="projectProgress">Progress (%)</label>
-                            <input 
-                                type="number" 
-                                id="projectProgress" 
-                                min="0" 
-                                max="100" 
-                                value="0"
-                                class="form-input"
-                            >
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="projectTags">Tags (comma separated)</label>
-                        <input 
-                            type="text" 
-                            id="projectTags" 
-                            placeholder="Research, Paper, Experiment"
-                            class="form-input"
-                        >
-                    </div>
-
-                    <div class="modal-footer">
-                        <button type="button" class="btn-secondary" id="cancelBtn">Cancel</button>
-                        <button type="submit" class="btn-primary">Save Project</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+        </main>
     </div>
 
     <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
 
-    <!-- Hidden file input for import -->
+    <!-- Hidden file input -->
     <input type="file" id="fileInput" accept=".json" style="display: none;">
 
-    <!-- Scripts -->
+    <!-- PDF.js Library (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+    
+    <!-- Core Scripts -->
+    <script>
+        // Configure PDF.js worker
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+        }
+    </script>
+    
     <script src="js/storage.js"></script>
     <script src="js/ui.js"></script>
+    
+    <!-- Components -->
+    <script src="js/components/sidebar.js"></script>
+    <script src="js/components/table.js"></script>
+    <script src="js/components/pdfViewer.js"></script>
+    
+    <!-- Views -->
+    <script src="js/views/dashboard.js"></script>
+    <script src="js/views/projects.js"></script>
+    <script src="js/views/tasks.js"></script>
+    <script src="js/views/papers.js"></script>
+    <script src="js/views/whiteboards.js"></script>
+    
+    <!-- Main App (must load last) -->
     <script src="js/app.js"></script>
 </body>
 </html>

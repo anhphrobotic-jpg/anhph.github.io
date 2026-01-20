@@ -1,222 +1,209 @@
-# Research Project Manager
+# Professional Research Workspace
 
-Một website quản lý project research cá nhân, chạy hoàn toàn bằng HTML, CSS, JavaScript (không backend, không framework). Có thể deploy trực tiếp trên GitHub Pages.
+A Notion-like personal research management system built with vanilla HTML, CSS, and JavaScript.
 
-## ✨ Tính năng
+## 🚀 Features
 
-### Dashboard (index.html)
-- 📊 Hiển thị danh sách tất cả projects
-- 🔍 Tìm kiếm và lọc theo trạng thái, tags
-- ➕ Tạo, chỉnh sửa, xóa projects
-- 📈 Thống kê tổng quan (tổng số project, tiến độ trung bình)
-- 📥📤 Export/Import dữ liệu JSON
+### Core Functionality
+- **Dashboard**: Overview of active projects, upcoming tasks, reading queue, and recent whiteboards
+- **Projects**: Manage research projects with progress tracking and related entities
+- **Tasks**: Track todos with priorities, due dates, and project associations
+- **Papers**: Organize research papers with PDF viewer and annotation tools
+- **Whiteboards**: Visual brainstorming space for ideas and diagrams
 
-### Project Detail (project.html)
-Mỗi project có 5 modules:
+### PDF Viewer & Annotations (Critical Feature)
+- Client-side PDF viewing using PDF.js
+- Highlight text on PDFs
+- Add text notes at specific locations
+- Annotations saved to localStorage
+- Page navigation and zoom controls
 
-#### 1. Overview
-- Mục tiêu nghiên cứu
-- Câu hỏi nghiên cứu
-- Hypothesis
-- Trạng thái hiện tại
+### Design
+- Notion-inspired clean interface
+- Light/Dark theme support
+- Fully responsive (desktop, tablet, mobile)
+- Professional academic aesthetic
 
-#### 2. Tasks & Progress
-- Todo list với checklist
-- Tự động tính tiến độ %
-- Trạng thái: Todo / Doing / Done
-
-#### 3. Notes
-- Ghi chú với Markdown đơn giản
-- Hỗ trợ: Heading, Bold, Italic, Code, Links, Lists
-
-#### 4. References
-- Quản lý tài liệu tham khảo
-- Thông tin: Title, Authors, Year, URL/DOI, Type, Notes
-- Click để mở link ngoài
-
-#### 5. Whiteboard
-- Canvas vẽ tay
-- Tools: Pen, Eraser, Color picker, Brush size
-- Lưu trạng thái canvas
-
-## 🎨 UI/UX Features
-
-- ✅ Light/Dark theme toggle
-- ✅ Responsive design (Desktop ưu tiên, Mobile usable)
-- ✅ Animations mượt mà
-- ✅ Modal dialogs
-- ✅ Toast notifications
-- ✅ Empty states
-
-## ⌨️ Keyboard Shortcuts
-
-### Dashboard
-- `Ctrl+N`: Tạo project mới
-- `Ctrl+E`: Export dữ liệu
-- `Ctrl+I`: Import dữ liệu
-- `Esc`: Đóng modal
-
-### Project Detail
-- `Ctrl+N`: Thêm item mới (tùy tab hiện tại)
-- `Ctrl+S`: Lưu whiteboard
-- `Esc`: Đóng modal
-
-## 🗂️ Cấu trúc Project
+## 📂 Project Structure
 
 ```
-Websites_html/
-├── index.html              # Dashboard
-├── project.html            # Chi tiết project
+├── index.html                 # Main SPA entry point
+├── data/                      # JSON databases
+│   ├── projects.json
+│   ├── tasks.json
+│   ├── papers.json
+│   └── whiteboards.json
 ├── css/
-│   ├── theme.css          # Theme variables & animations
-│   └── main.css           # Main styles & responsive
+│   ├── theme.css             # Design tokens & themes
+│   └── main.css              # Layout & components
 ├── js/
-│   ├── storage.js         # LocalStorage wrapper & data logic
-│   ├── ui.js              # UI helpers & utilities
-│   ├── app.js             # Dashboard logic
-│   └── project.js         # Project detail logic
-└── assets/
-    ├── icons/
-    └── images/
+│   ├── app.js                # Main application controller
+│   ├── storage.js            # Data layer (JSON + localStorage)
+│   ├── ui.js                 # UI utilities
+│   ├── views/                # Page views
+│   │   ├── dashboard.js
+│   │   ├── projects.js
+│   │   ├── tasks.js
+│   │   ├── papers.js
+│   │   └── whiteboards.js
+│   └── components/           # Reusable components
+│       ├── sidebar.js
+│       ├── table.js
+│       └── pdfViewer.js
+├── assets/
+│   ├── pdf/                  # Store your PDF files here
+│   ├── images/
+│   └── icons/
+└── backup_old/               # Original files backup
 ```
 
-## 🏗️ Kiến trúc
+## 🎯 Getting Started
 
-### Data Layer (storage.js)
-- LocalStorage wrapper
-- CRUD operations cho projects
-- Module operations (tasks, notes, references, whiteboard)
-- Export/Import JSON
-- Search & filter
+### 1. Add Your PDFs
+Place your research papers (PDF files) in `assets/pdf/` directory.
 
-### UI Layer (ui.js)
-- Theme management
-- Modal controls
-- Toast notifications
-- Date formatting
-- Simple Markdown parser
-- Keyboard shortcuts handler
-- Animation helpers
+### 2. Update Data
+Edit JSON files in `data/` directory to add your projects, tasks, papers, and whiteboards.
 
-### Application Layer
-- **app.js**: Dashboard logic (list projects, search, filter, stats)
-- **project.js**: Project detail logic (tabs, modules, canvas)
-
-## 🚀 Deployment
-
-### GitHub Pages
-
-1. Tạo repository mới trên GitHub
-2. Push code lên repository:
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-git remote add origin https://github.com/username/repo-name.git
-git push -u origin main
-```
-
-3. Vào Settings > Pages
-4. Chọn Source: Deploy from branch
-5. Chọn Branch: main, folder: / (root)
-6. Click Save
-
-Website sẽ available tại: `https://username.github.io/repo-name/`
-
-### Local Development
-
-Chỉ cần mở file `index.html` bằng browser, hoặc dùng local server:
-
-```bash
-# Python 3
-python -m http.server 8000
-
-# Node.js (npx)
-npx serve
-
-# VS Code Live Server extension
-```
-
-## 💾 Dữ liệu
-
-Tất cả dữ liệu lưu trong LocalStorage của browser:
-- `research_projects`: Danh sách projects
-- `research_settings`: Settings
-- `research_theme`: Light/Dark theme
-
-**Lưu ý**: LocalStorage có giới hạn ~5-10MB tùy browser. Với whiteboard canvas, nên export data định kỳ.
-
-## 🔧 Tùy chỉnh & Mở rộng
-
-### Thêm Field mới cho Project
-
-1. Cập nhật data model trong `storage.js`:
-```javascript
-createProject(projectData) {
-    const newProject = {
-        // ... existing fields
-        customField: projectData.customField || ''
-    };
+Example paper entry in `data/papers.json`:
+```json
+{
+  "id": "paper_1",
+  "title": "Your Paper Title",
+  "authors": "Author Names",
+  "journal": "Journal Name",
+  "year": 2024,
+  "pdfPath": "assets/pdf/your-paper.pdf",
+  "status": "to-read",
+  "projectId": "proj_1",
+  "notes": "Important findings..."
 }
 ```
 
-2. Thêm input vào form trong `index.html`
-3. Cập nhật render function trong `app.js`
+### 3. Open in Browser
+Simply open `index.html` in a modern web browser. No server required!
 
-### Thêm Module mới
+### 4. Deploy to GitHub Pages
+```powershell
+git add .
+git commit -m "Update research workspace"
+git push
+```
 
-1. Thêm tab button trong sidebar (`project.html`)
-2. Thêm tab content section
-3. Implement logic trong `project.js`
+Your site will be live at: https://anhphrobotic-jpg.github.io/
 
-### Thay đổi Theme Colors
+## 📖 Usage Guide
 
-Edit CSS variables trong `css/theme.css`:
+### Navigation
+- Use sidebar to switch between sections (Dashboard, Projects, Tasks, Papers, Whiteboards)
+- Click on items in tables to view details
+- Mobile: Tap menu icon (≡) to toggle sidebar
+
+### PDF Annotations
+1. Navigate to Papers section
+2. Click on a paper to open PDF viewer
+3. Click "🖍️ Highlight" to draw highlights on PDF
+4. Click "📝 Note" to add text notes
+5. Click "💾 Save" to persist annotations
+
+### Themes
+Click the theme toggle button (🌙/☀️) in sidebar to switch between light and dark modes.
+
+### Data Management
+All data is stored in:
+- **JSON files** (`data/` directory) - Projects, tasks, papers, whiteboards
+- **LocalStorage** - User preferences (theme, annotations)
+
+## 🔧 Customization
+
+### Add New Project
+Edit `data/projects.json`:
+```json
+{
+  "id": "proj_new",
+  "title": "New Project",
+  "description": "Project description",
+  "stage": "planning",
+  "progress": 0,
+  "startDate": "2024-01-01",
+  "tags": ["tag1", "tag2"]
+}
+```
+
+### Add New Task
+Edit `data/tasks.json`:
+```json
+{
+  "id": "task_new",
+  "title": "New Task",
+  "description": "Task description",
+  "projectId": "proj_new",
+  "status": "todo",
+  "priority": "high",
+  "dueDate": "2024-12-31"
+}
+```
+
+### Colors & Styling
+Edit CSS variables in `css/theme.css`:
 ```css
 :root {
-    --color-primary: #your-color;
-    --bg-primary: #your-bg;
+  --primary: #your-color;
+  --background: #your-bg-color;
+  /* ... */
 }
 ```
 
-## 🎯 Use Cases
+## 🌐 Browser Compatibility
+- Chrome/Edge (recommended)
+- Firefox
+- Safari
+- Modern mobile browsers
 
-- 📚 Quản lý research projects cá nhân
-- 📖 Literature review organization
-- 🧪 Lab experiment tracking
-- 📝 Academic writing notes
-- 🎓 Thesis/dissertation management
-- 💡 Idea brainstorming & development
+Requires JavaScript enabled.
 
-## 🐛 Known Limitations
+## 📦 Dependencies
+- **PDF.js** (v3.11.174) - Loaded from CDN
+- No other external dependencies
 
-- LocalStorage capacity (~5-10MB)
-- No real-time collaboration
-- No cloud sync (manual export/import)
-- Basic Markdown support only
-- Canvas drawing không có undo/redo (có thể thêm sau)
+## 🔒 Data Privacy
+All data is stored locally:
+- JSON files in your repository
+- LocalStorage in your browser
+- No external servers or analytics
 
-## 🔮 Future Enhancements
+## 🐛 Troubleshooting
 
-- [ ] Undo/Redo cho canvas
-- [ ] More Markdown features
-- [ ] Timeline view cho projects
-- [ ] Gantt chart
-- [ ] File attachments (base64 hoặc external links)
-- [ ] Cloud sync (Google Drive API, Dropbox)
-- [ ] PDF export
-- [ ] Collaboration mode
-- [ ] Advanced search (fuzzy matching)
-- [ ] Tags autocomplete
+### PDFs not loading?
+- Check PDF path in `data/papers.json` matches actual file location
+- Ensure PDF files are in `assets/pdf/` directory
+- Check browser console for errors
+
+### Annotations not saving?
+- Ensure localStorage is enabled in browser
+- Check browser console for storage errors
+- Try different browser if issues persist
+
+### Mobile sidebar not working?
+- Clear browser cache
+- Try hard refresh (Ctrl+F5)
+- Check console for JavaScript errors
+
+## 📝 Notes
+- Original files backed up in `backup_old/` directory
+- Annotations stored per paper ID in localStorage
+- Theme preference persists across sessions
+
+## 🚀 Future Enhancements
+- Export annotations to PDF
+- Search functionality
+- Data export/import
+- Collaborative features
+- Cloud sync
 
 ## 📄 License
-
-Free to use for personal and educational purposes.
-
-## 🤝 Contributing
-
-Đây là personal project, nhưng bạn có thể fork và customize theo nhu cầu của mình.
+Personal research project - use freely for your own research needs.
 
 ---
 
-**Developed with ❤️ for researchers and students**
+Built with ❤️ for academic research

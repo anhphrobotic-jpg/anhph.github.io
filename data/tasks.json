@@ -1,0 +1,44 @@
+{
+  "tasks": [
+    {
+      "id": "task_1",
+      "projectId": "proj_1",
+      "title": "Literature review on LSTM models",
+      "status": "done",
+      "priority": "high",
+      "dueDate": "2026-01-15",
+      "createdAt": 1705276800000,
+      "completedAt": 1706486400000
+    },
+    {
+      "id": "task_2",
+      "projectId": "proj_1",
+      "title": "Collect and preprocess climate dataset",
+      "status": "in-progress",
+      "priority": "high",
+      "dueDate": "2026-01-25",
+      "createdAt": 1705363200000,
+      "completedAt": null
+    },
+    {
+      "id": "task_3",
+      "projectId": "proj_1",
+      "title": "Implement baseline model",
+      "status": "todo",
+      "priority": "medium",
+      "dueDate": "2026-02-05",
+      "createdAt": 1705449600000,
+      "completedAt": null
+    },
+    {
+      "id": "task_4",
+      "projectId": "proj_2",
+      "title": "Study quantum algorithms fundamentals",
+      "status": "in-progress",
+      "priority": "high",
+      "dueDate": "2026-01-30",
+      "createdAt": 1730419200000,
+      "completedAt": null
+    }
+  ]
+}

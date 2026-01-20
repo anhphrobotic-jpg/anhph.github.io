@@ -1,0 +1,49 @@
+{
+  "papers": [
+    {
+      "id": "paper_1",
+      "projectId": "proj_1",
+      "title": "Deep Learning for Climate Modeling",
+      "authors": "Smith, J., et al.",
+      "journal": "Nature Climate Change",
+      "year": 2023,
+      "status": "read",
+      "pdfPath": "assets/pdf/sample1.pdf",
+      "tags": ["Deep Learning", "Climate"],
+      "notes": "Key paper on LSTM applications",
+      "rating": 5,
+      "createdAt": 1705276800000,
+      "readAt": 1706486400000
+    },
+    {
+      "id": "paper_2",
+      "projectId": "proj_1",
+      "title": "Attention Mechanisms in Time Series Prediction",
+      "authors": "Johnson, A., Lee, K.",
+      "journal": "ICML 2023",
+      "year": 2023,
+      "status": "to-read",
+      "pdfPath": "assets/pdf/sample2.pdf",
+      "tags": ["Attention", "Time Series"],
+      "notes": "",
+      "rating": 0,
+      "createdAt": 1705363200000,
+      "readAt": null
+    },
+    {
+      "id": "paper_3",
+      "projectId": "proj_2",
+      "title": "Quantum Algorithms for Optimization",
+      "authors": "Chen, L., Wang, M.",
+      "journal": "Physical Review Letters",
+      "year": 2024,
+      "status": "reading",
+      "pdfPath": "assets/pdf/sample3.pdf",
+      "tags": ["Quantum", "Optimization"],
+      "notes": "Important for project foundation",
+      "rating": 4,
+      "createdAt": 1730419200000,
+      "readAt": null
+    }
+  ]
+}

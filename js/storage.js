@@ -1,421 +1,173 @@
-// ===================================
-// Storage Module - LocalStorage Wrapper
-// ===================================
+// ========================================
+// DATA LAYER - JSON Database Manager
+// ========================================
 
-const Storage = {
-    // Storage keys
-    KEYS: {
-        PROJECTS: 'research_projects',
-        SETTINGS: 'research_settings',
-        THEME: 'research_theme'
+const DataStore = {
+    data: {
+        projects: [],
+        tasks: [],
+        papers: [],
+        whiteboards: []
     },
-
-    // Initialize storage with default data
-    init() {
-        if (!this.getProjects()) {
-            this.saveProjects([]);
-        }
-        if (!this.getSettings()) {
-            this.saveSettings({
-                theme: 'light',
-                lastSync: null
-            });
+    loaded: false,
+    
+    // Load all data from JSON files
+    async loadAll() {
+        if (this.loaded) return this.data;
+        
+        try {
+            const [projects, tasks, papers, whiteboards] = await Promise.all([
+                fetch('data/projects.json').then(r => r.json()),
+                fetch('data/tasks.json').then(r => r.json()),
+                fetch('data/papers.json').then(r => r.json()),
+                fetch('data/whiteboards.json').then(r => r.json())
+            ]);
+            
+            this.data.projects = projects.projects || [];
+            this.data.tasks = tasks.tasks || [];
+            this.data.papers = papers.papers || [];
+            this.data.whiteboards = whiteboards.whiteboards || [];
+            
+            this.loaded = true;
+            return this.data;
+        } catch (error) {
+            console.error('Failed to load data:', error);
+            return this.data;
         }
     },
-
-    // ===================================
-    // Projects CRUD Operations
-    // ===================================
-
+    
     // Get all projects
     getProjects() {
-        try {
-            const data = localStorage.getItem(this.KEYS.PROJECTS);
-            return data ? JSON.parse(data) : null;
-        } catch (error) {
-            console.error('Error getting projects:', error);
-            return [];
-        }
+        return this.data.projects;
     },
-
-    // Save all projects
-    saveProjects(projects) {
-        try {
-            localStorage.setItem(this.KEYS.PROJECTS, JSON.stringify(projects));
-            return true;
-        } catch (error) {
-            console.error('Error saving projects:', error);
-            return false;
-        }
-    },
-
-    // Get single project by ID
+    
+    // Get project by ID
     getProject(id) {
-        const projects = this.getProjects();
-        return projects.find(p => p.id === id);
+        return this.data.projects.find(p => p.id === id);
     },
-
-    // Create new project
-    createProject(projectData) {
-        const projects = this.getProjects();
-        
-        const newProject = {
-            id: this.generateId(),
-            title: projectData.title || 'Untitled Project',
-            description: projectData.description || '',
-            status: projectData.status || 'planning',
-            tags: projectData.tags || [],
-            progress: projectData.progress || 0,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-            
-            // Modules data
-            overview: {
-                goals: '',
-                questions: '',
-                hypothesis: '',
-                currentStatus: ''
-            },
-            tasks: [],
-            notes: [],
-            references: [],
-            whiteboard: null
-        };
-
-        projects.push(newProject);
-        this.saveProjects(projects);
-        return newProject;
+    
+    // Get tasks for a project
+    getTasksByProject(projectId) {
+        return this.data.tasks.filter(t => t.projectId === projectId);
     },
-
-    // Update existing project
-    updateProject(id, updates) {
-        const projects = this.getProjects();
-        const index = projects.findIndex(p => p.id === id);
-        
-        if (index === -1) {
-            console.error('Project not found:', id);
-            return null;
-        }
-
-        projects[index] = {
-            ...projects[index],
-            ...updates,
-            updatedAt: Date.now()
-        };
-
-        this.saveProjects(projects);
-        return projects[index];
+    
+    // Get all tasks
+    getTasks() {
+        return this.data.tasks;
     },
-
-    // Delete project
-    deleteProject(id) {
-        const projects = this.getProjects();
-        const filtered = projects.filter(p => p.id !== id);
-        
-        if (filtered.length === projects.length) {
-            return false; // Project not found
-        }
-
-        this.saveProjects(filtered);
-        return true;
+    
+    // Get papers for a project
+    getPapersByProject(projectId) {
+        return this.data.papers.filter(p => p.projectId === projectId);
     },
-
-    // ===================================
-    // Project Module Operations
-    // ===================================
-
-    // Update project overview
-    updateOverview(projectId, overview) {
+    
+    // Get all papers
+    getPapers() {
+        return this.data.papers;
+    },
+    
+    // Get paper by ID
+    getPaper(id) {
+        return this.data.papers.find(p => p.id === id);
+    },
+    
+    // Get whiteboards for a project
+    getWhiteboardsByProject(projectId) {
+        return this.data.whiteboards.filter(w => w.projectId === projectId);
+    },
+    
+    // Get all whiteboards
+    getWhiteboards() {
+        return this.data.whiteboards;
+    },
+    
+    // Get whiteboard by ID
+    getWhiteboard(id) {
+        return this.data.whiteboards.find(w => w.id === id);
+    },
+    
+    // Get project title by ID (helper)
+    getProjectTitle(projectId) {
         const project = this.getProject(projectId);
-        if (!project) return null;
-
-        return this.updateProject(projectId, {
-            overview: { ...project.overview, ...overview }
+        return project ? project.title : 'Unknown Project';
+    },
+    
+    // Dashboard helpers
+    getActiveProjects() {
+        return this.data.projects.filter(p => p.stage === 'in-progress');
+    },
+    
+    getTasksDueThisWeek() {
+        const now = Date.now();
+        const weekFromNow = now + (7 * 24 * 60 * 60 * 1000);
+        return this.data.tasks.filter(t => {
+            if (!t.dueDate || t.status === 'done') return false;
+            const dueDate = new Date(t.dueDate).getTime();
+            return dueDate >= now && dueDate <= weekFromNow;
         });
     },
-
-    // Add task to project
-    addTask(projectId, taskData) {
-        const project = this.getProject(projectId);
-        if (!project) return null;
-
-        const newTask = {
-            id: this.generateId(),
-            title: taskData.title,
-            status: taskData.status || 'todo',
-            createdAt: Date.now()
-        };
-
-        const tasks = [...project.tasks, newTask];
-        const progress = this.calculateProgress(tasks);
-
-        return this.updateProject(projectId, { tasks, progress });
+    
+    getPapersToRead() {
+        return this.data.papers.filter(p => p.status === 'to-read');
     },
-
-    // Update task
-    updateTask(projectId, taskId, updates) {
-        const project = this.getProject(projectId);
-        if (!project) return null;
-
-        const tasks = project.tasks.map(task =>
-            task.id === taskId ? { ...task, ...updates } : task
-        );
-
-        const progress = this.calculateProgress(tasks);
-
-        return this.updateProject(projectId, { tasks, progress });
+    
+    getRecentWhiteboards(limit = 5) {
+        return [...this.data.whiteboards]
+            .sort((a, b) => b.updatedAt - a.updatedAt)
+            .slice(0, limit);
     },
-
-    // Delete task
-    deleteTask(projectId, taskId) {
-        const project = this.getProject(projectId);
-        if (!project) return null;
-
-        const tasks = project.tasks.filter(task => task.id !== taskId);
-        const progress = this.calculateProgress(tasks);
-
-        return this.updateProject(projectId, { tasks, progress });
-    },
-
-    // Add note to project
-    addNote(projectId, noteData) {
-        const project = this.getProject(projectId);
-        if (!project) return null;
-
-        const newNote = {
-            id: this.generateId(),
-            title: noteData.title,
-            content: noteData.content,
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-        };
-
-        const notes = [...project.notes, newNote];
-        return this.updateProject(projectId, { notes });
-    },
-
-    // Update note
-    updateNote(projectId, noteId, updates) {
-        const project = this.getProject(projectId);
-        if (!project) return null;
-
-        const notes = project.notes.map(note =>
-            note.id === noteId 
-                ? { ...note, ...updates, updatedAt: Date.now() } 
-                : note
-        );
-
-        return this.updateProject(projectId, { notes });
-    },
-
-    // Delete note
-    deleteNote(projectId, noteId) {
-        const project = this.getProject(projectId);
-        if (!project) return null;
-
-        const notes = project.notes.filter(note => note.id !== noteId);
-        return this.updateProject(projectId, { notes });
-    },
-
-    // Add reference to project
-    addReference(projectId, refData) {
-        const project = this.getProject(projectId);
-        if (!project) return null;
-
-        const newRef = {
-            id: this.generateId(),
-            title: refData.title,
-            authors: refData.authors || '',
-            year: refData.year || '',
-            type: refData.type || 'paper',
-            url: refData.url || '',
-            notes: refData.notes || '',
-            createdAt: Date.now()
-        };
-
-        const references = [...project.references, newRef];
-        return this.updateProject(projectId, { references });
-    },
-
-    // Update reference
-    updateReference(projectId, refId, updates) {
-        const project = this.getProject(projectId);
-        if (!project) return null;
-
-        const references = project.references.map(ref =>
-            ref.id === refId ? { ...ref, ...updates } : ref
-        );
-
-        return this.updateProject(projectId, { references });
-    },
-
-    // Delete reference
-    deleteReference(projectId, refId) {
-        const project = this.getProject(projectId);
-        if (!project) return null;
-
-        const references = project.references.filter(ref => ref.id !== refId);
-        return this.updateProject(projectId, { references });
-    },
-
-    // Save whiteboard canvas data
-    saveWhiteboard(projectId, canvasData) {
-        return this.updateProject(projectId, { whiteboard: canvasData });
-    },
-
-    // ===================================
-    // Utility Functions
-    // ===================================
-
-    // Calculate project progress based on tasks
-    calculateProgress(tasks) {
-        if (!tasks || tasks.length === 0) return 0;
-        
-        const completedTasks = tasks.filter(t => t.status === 'done').length;
-        return Math.round((completedTasks / tasks.length) * 100);
-    },
-
-    // Generate unique ID
-    generateId() {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2);
-    },
-
-    // ===================================
-    // Settings & Theme
-    // ===================================
-
-    getSettings() {
-        try {
-            const data = localStorage.getItem(this.KEYS.SETTINGS);
-            return data ? JSON.parse(data) : null;
-        } catch (error) {
-            console.error('Error getting settings:', error);
-            return null;
-        }
-    },
-
-    saveSettings(settings) {
-        try {
-            localStorage.setItem(this.KEYS.SETTINGS, JSON.stringify(settings));
-            return true;
-        } catch (error) {
-            console.error('Error saving settings:', error);
-            return false;
-        }
-    },
-
-    getTheme() {
-        return localStorage.getItem(this.KEYS.THEME) || 'light';
-    },
-
-    saveTheme(theme) {
-        localStorage.setItem(this.KEYS.THEME, theme);
-    },
-
-    // ===================================
-    // Import / Export
-    // ===================================
-
-    exportData() {
-        const data = {
-            projects: this.getProjects(),
-            settings: this.getSettings(),
-            exportedAt: Date.now(),
-            version: '1.0'
-        };
-
-        return JSON.stringify(data, null, 2);
-    },
-
-    importData(jsonString) {
-        try {
-            const data = JSON.parse(jsonString);
-            
-            // Validate data structure
-            if (!data.projects || !Array.isArray(data.projects)) {
-                throw new Error('Invalid data format');
-            }
-
-            // Merge with existing projects (avoid duplicates by ID)
-            const existingProjects = this.getProjects();
-            const existingIds = new Set(existingProjects.map(p => p.id));
-            
-            const newProjects = data.projects.filter(p => !existingIds.has(p.id));
-            const mergedProjects = [...existingProjects, ...newProjects];
-
-            this.saveProjects(mergedProjects);
-
-            return {
-                success: true,
-                imported: newProjects.length,
-                total: mergedProjects.length
-            };
-        } catch (error) {
-            console.error('Error importing data:', error);
-            return {
-                success: false,
-                error: error.message
-            };
-        }
-    },
-
-    // ===================================
-    // Search & Filter
-    // ===================================
-
-    searchProjects(query, filters = {}) {
-        let projects = this.getProjects();
-
-        // Text search
-        if (query) {
-            const lowerQuery = query.toLowerCase();
-            projects = projects.filter(p =>
-                p.title.toLowerCase().includes(lowerQuery) ||
-                p.description.toLowerCase().includes(lowerQuery) ||
-                p.tags.some(tag => tag.toLowerCase().includes(lowerQuery))
-            );
-        }
-
-        // Status filter
-        if (filters.status && filters.status !== 'all') {
-            projects = projects.filter(p => p.status === filters.status);
-        }
-
-        // Tag filter
-        if (filters.tag && filters.tag !== 'all') {
-            projects = projects.filter(p => p.tags.includes(filters.tag));
-        }
-
-        return projects;
-    },
-
-    // Get all unique tags from projects
-    getAllTags() {
-        const projects = this.getProjects();
-        const tagsSet = new Set();
-
-        projects.forEach(project => {
-            project.tags.forEach(tag => tagsSet.add(tag));
-        });
-
-        return Array.from(tagsSet).sort();
-    },
-
-    // Get statistics
+    
+    // Stats
     getStats() {
-        const projects = this.getProjects();
-        
         return {
-            total: projects.length,
-            planning: projects.filter(p => p.status === 'planning').length,
-            inProgress: projects.filter(p => p.status === 'in-progress').length,
-            done: projects.filter(p => p.status === 'done').length,
-            avgProgress: projects.length > 0
-                ? Math.round(projects.reduce((sum, p) => sum + p.progress, 0) / projects.length)
-                : 0
+            totalProjects: this.data.projects.length,
+            activeProjects: this.getActiveProjects().length,
+            totalTasks: this.data.tasks.length,
+            completedTasks: this.data.tasks.filter(t => t.status === 'done').length,
+            totalPapers: this.data.papers.length,
+            readPapers: this.data.papers.filter(p => p.status === 'read').length
         };
     }
 };
 
-// Initialize storage on load
-Storage.init();
+// LocalStorage fallback for user data
+const Storage = {
+    KEYS: {
+        THEME: 'research_theme',
+        ANNOTATIONS: 'research_annotations',
+        SETTINGS: 'research_settings'
+    },
+    
+    getTheme() {
+        return localStorage.getItem(this.KEYS.THEME) || 'light';
+    },
+    
+    saveTheme(theme) {
+        localStorage.setItem(this.KEYS.THEME, theme);
+    },
+    
+    getAnnotations(paperId) {
+        const all = localStorage.getItem(this.KEYS.ANNOTATIONS);
+        if (!all) return null;
+        const parsed = JSON.parse(all);
+        return parsed[paperId] || null;
+    },
+    
+    saveAnnotations(paperId, annotations) {
+        const all = localStorage.getItem(this.KEYS.ANNOTATIONS) || '{}';
+        const parsed = JSON.parse(all);
+        parsed[paperId] = annotations;
+        localStorage.setItem(this.KEYS.ANNOTATIONS, JSON.stringify(parsed));
+    },
+    
+    exportAllData() {
+        return {
+            projects: DataStore.data.projects,
+            tasks: DataStore.data.tasks,
+            papers: DataStore.data.papers,
+            whiteboards: DataStore.data.whiteboards,
+            annotations: localStorage.getItem(this.KEYS.ANNOTATIONS),
+            exportedAt: Date.now()
+        };
+    }
+};
