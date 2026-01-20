@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Detail - Research Manager</title>
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="header-left">
+                <a href="index.html" class="back-link">← Back to Dashboard</a>
+                <h1 class="project-title" id="projectTitle">Project Name</h1>
+            </div>
+            <div class="header-actions">
+                <button class="btn-icon" id="themeToggle" title="Toggle theme">
+                    <span class="theme-icon">🌙</span>
+                </button>
+                <button class="btn-icon" id="editProjectBtn" title="Edit project">
+                    ✏️
+                </button>
+                <button class="btn-icon" id="deleteProjectBtn" title="Delete project">
+                    🗑️
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="project-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-tab="overview">
+                    📋 Overview
+                </button>
+                <button class="nav-item" data-tab="tasks">
+                    ✓ Tasks
+                    <span class="badge" id="tasksBadge">0/0</span>
+                </button>
+                <button class="nav-item" data-tab="notes">
+                    📝 Notes
+                    <span class="badge" id="notesBadge">0</span>
+                </button>
+                <button class="nav-item" data-tab="references">
+                    📚 References
+                    <span class="badge" id="refsBadge">0</span>
+                </button>
+                <button class="nav-item" data-tab="whiteboard">
+                    🎨 Whiteboard
+                </button>
+            </nav>
+
+            <!-- Project Meta Info -->
+            <div class="project-meta">
+                <div class="meta-item">
+                    <span class="meta-label">Status</span>
+                    <span class="status-badge" id="projectStatus">Planning</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Progress</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+                    </div>
+                    <span class="progress-text" id="progressText">0%</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Created</span>
+                    <span id="createdDate">-</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="content-area">
+            <!-- Overview Tab -->
+            <section class="tab-content active" id="overviewTab">
+                <div class="content-header">
+                    <h2>Project Overview</h2>
+                    <button class="btn-secondary btn-sm" id="editOverviewBtn">Edit</button>
+                </div>
+
+                <div class="overview-grid">
+                    <div class="overview-card">
+                        <h3>🎯 Research Goals</h3>
+                        <div class="editable-content" id="goalsContent">
+                            <p class="text-muted">Click Edit to add research goals...</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-card">
+                        <h3>❓ Research Questions</h3>
+                        <div class="editable-content" id="questionsContent">
+                            <p class="text-muted">Click Edit to add research questions...</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-card">
+                        <h3>💡 Hypothesis</h3>
+                        <div class="editable-content" id="hypothesisContent">
+                            <p class="text-muted">Click Edit to add hypothesis...</p>
+                        </div>
+                    </div>
+
+                    <div class="overview-card">
+                        <h3>📊 Current Status</h3>
+                        <div class="editable-content" id="statusContent">
+                            <p class="text-muted">Click Edit to add current status...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tasks Tab -->
+            <section class="tab-content" id="tasksTab">
+                <div class="content-header">
+                    <h2>Tasks & Progress</h2>
+                    <button class="btn-primary btn-sm" id="addTaskBtn">+ Add Task</button>
+                </div>
+
+                <div class="tasks-list" id="tasksList">
+                    <!-- Tasks will be rendered here -->
+                </div>
+
+                <div class="empty-state" id="tasksEmpty" style="display: none;">
+                    <p>No tasks yet. Add your first task to track progress.</p>
+                </div>
+            </section>
+
+            <!-- Notes Tab -->
+            <section class="tab-content" id="notesTab">
+                <div class="content-header">
+                    <h2>Research Notes</h2>
+                    <button class="btn-primary btn-sm" id="addNoteBtn">+ New Note</button>
+                </div>
+
+                <div class="notes-grid" id="notesList">
+                    <!-- Notes will be rendered here -->
+                </div>
+
+                <div class="empty-state" id="notesEmpty" style="display: none;">
+                    <p>No notes yet. Create your first note.</p>
+                </div>
+            </section>
+
+            <!-- References Tab -->
+            <section class="tab-content" id="referencesTab">
+                <div class="content-header">
+                    <h2>References & Articles</h2>
+                    <button class="btn-primary btn-sm" id="addReferenceBtn">+ Add Reference</button>
+                </div>
+
+                <div class="references-list" id="referencesList">
+                    <!-- References will be rendered here -->
+                </div>
+
+                <div class="empty-state" id="referencesEmpty" style="display: none;">
+                    <p>No references yet. Add your first article or paper.</p>
+                </div>
+            </section>
+
+            <!-- Whiteboard Tab -->
+            <section class="tab-content" id="whiteboardTab">
+                <div class="content-header">
+                    <h2>Whiteboard</h2>
+                    <div class="whiteboard-tools">
+                        <button class="btn-icon" id="penTool" title="Pen">✏️</button>
+                        <button class="btn-icon" id="eraserTool" title="Eraser">🧹</button>
+                        <input type="color" id="colorPicker" value="#000000" title="Color">
+                        <input type="range" id="brushSize" min="1" max="20" value="2" title="Brush size">
+                        <button class="btn-secondary btn-sm" id="clearCanvas">Clear</button>
+                        <button class="btn-primary btn-sm" id="saveCanvas">Save</button>
+                    </div>
+                </div>
+
+                <div class="canvas-container">
+                    <canvas id="whiteboard" width="1200" height="600"></canvas>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal: Edit Overview -->
+    <div class="modal" id="overviewModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Overview</h2>
+                <button class="btn-close" id="closeOverviewModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="overviewForm">
+                    <div class="form-group">
+                        <label>Research Goals</label>
+                        <textarea id="goalsInput" rows="3" class="form-input"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Research Questions</label>
+                        <textarea id="questionsInput" rows="3" class="form-input"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Hypothesis</label>
+                        <textarea id="hypothesisInput" rows="3" class="form-input"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Current Status</label>
+                        <textarea id="statusInput" rows="3" class="form-input"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="cancelOverview">Cancel</button>
+                        <button type="submit" class="btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add/Edit Task -->
+    <div class="modal" id="taskModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="taskModalTitle">Add Task</h2>
+                <button class="btn-close" id="closeTaskModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm">
+                    <div class="form-group">
+                        <label>Task Title *</label>
+                        <input type="text" id="taskTitle" required class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="taskStatus" class="form-input">
+                            <option value="todo">To Do</option>
+                            <option value="doing">Doing</option>
+                            <option value="done">Done</option>
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="cancelTask">Cancel</button>
+                        <button type="submit" class="btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add/Edit Note -->
+    <div class="modal" id="noteModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 id="noteModalTitle">New Note</h2>
+                <button class="btn-close" id="closeNoteModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="noteForm">
+                    <div class="form-group">
+                        <label>Note Title *</label>
+                        <input type="text" id="noteTitle" required class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Content (Markdown supported)</label>
+                        <textarea id="noteContent" rows="12" class="form-input code-font"></textarea>
+                        <small class="text-muted">Supports: # Heading, - List, **bold**, `code`</small>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="cancelNote">Cancel</button>
+                        <button type="submit" class="btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add/Edit Reference -->
+    <div class="modal" id="referenceModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="refModalTitle">Add Reference</h2>
+                <button class="btn-close" id="closeRefModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="referenceForm">
+                    <div class="form-group">
+                        <label>Title *</label>
+                        <input type="text" id="refTitle" required class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Authors</label>
+                        <input type="text" id="refAuthors" class="form-input" placeholder="Smith, J., Doe, A.">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Year</label>
+                            <input type="number" id="refYear" class="form-input" placeholder="2024">
+                        </div>
+                        <div class="form-group">
+                            <label>Type</label>
+                            <select id="refType" class="form-input">
+                                <option value="paper">Paper</option>
+                                <option value="book">Book</option>
+                                <option value="blog">Blog</option>
+                                <option value="article">Article</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>URL / DOI</label>
+                        <input type="url" id="refUrl" class="form-input" placeholder="https://">
+                    </div>
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="refNotes" rows="3" class="form-input"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="cancelRef">Cancel</button>
+                        <button type="submit" class="btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Scripts -->
+    <script src="js/storage.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/project.js"></script>
+</body>
+</html>
