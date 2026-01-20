@@ -77,7 +77,7 @@ const UI = {
             toast.classList.add(type);
         }
 
-        toast.textContent = message;
+        toast.innerHTML = message; // Changed to innerHTML to support links
         toast.classList.add('show');
 
         setTimeout(() => {

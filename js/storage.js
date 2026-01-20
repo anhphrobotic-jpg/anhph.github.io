@@ -127,6 +127,239 @@ const DataStore = {
             totalPapers: this.data.papers.length,
             readPapers: this.data.papers.filter(p => p.status === 'read').length
         };
+    },
+    
+    // ========================================
+    // CRUD OPERATIONS - TASKS
+    // ========================================
+    
+    createTask(taskData) {
+        const newTask = {
+            id: `task_${Date.now()}`,
+            projectId: taskData.projectId,
+            title: taskData.title || 'Untitled Task',
+            description: taskData.description || '',
+            type: taskData.type || 'research',
+            status: taskData.status || 'todo',
+            priority: taskData.priority || 'medium',
+            dueDate: taskData.dueDate || null,
+            createdAt: Date.now(),
+            completedAt: null
+        };
+        
+        this.data.tasks.push(newTask);
+        this._persistTasks();
+        return newTask;
+    },
+    
+    updateTask(taskId, updates) {
+        const task = this.data.tasks.find(t => t.id === taskId);
+        if (!task) {
+            console.error('Task not found:', taskId);
+            return null;
+        }
+        
+        // Update fields
+        Object.keys(updates).forEach(key => {
+            if (key !== 'id' && key !== 'createdAt') {
+                task[key] = updates[key];
+            }
+        });
+        
+        // Auto-set completedAt when status changes to done
+        if (updates.status === 'done' && !task.completedAt) {
+            task.completedAt = Date.now();
+        } else if (updates.status !== 'done' && task.completedAt) {
+            task.completedAt = null;
+        }
+        
+        this._persistTasks();
+        return task;
+    },
+    
+    deleteTask(taskId) {
+        const index = this.data.tasks.findIndex(t => t.id === taskId);
+        if (index === -1) {
+            console.error('Task not found:', taskId);
+            return false;
+        }
+        
+        this.data.tasks.splice(index, 1);
+        this._persistTasks();
+        return true;
+    },
+    
+    _persistTasks() {
+        // Save to localStorage as fallback
+        localStorage.setItem('research_tasks_data', JSON.stringify({
+            tasks: this.data.tasks,
+            lastUpdated: Date.now()
+        }));
+        
+        console.log('Tasks persisted to localStorage');
+        // In a real app, you would POST to a backend here
+        // For GitHub Pages, user must export/download JSON manually
+    },
+    
+    // ========================================
+    // CRUD OPERATIONS - PAPERS
+    // ========================================
+    
+    createPaper(paperData) {
+        const newPaper = {
+            id: `paper_${Date.now()}`,
+            projectId: paperData.projectId,
+            title: paperData.title || 'Untitled Paper',
+            authors: paperData.authors || '',
+            journal: paperData.journal || '',
+            year: paperData.year || new Date().getFullYear(),
+            pdfPath: paperData.pdfPath || '',
+            status: paperData.status || 'to-read',
+            importance: paperData.importance || 'medium',
+            notes: paperData.notes || '',
+            keyTakeaways: paperData.keyTakeaways || [],
+            tags: paperData.tags || [],
+            createdAt: Date.now(),
+            readAt: null
+        };
+        
+        this.data.papers.push(newPaper);
+        this._persistPapers();
+        return newPaper;
+    },
+    
+    updatePaper(paperId, updates) {
+        const paper = this.data.papers.find(p => p.id === paperId);
+        if (!paper) {
+            console.error('Paper not found:', paperId);
+            return null;
+        }
+        
+        // Update fields
+        Object.keys(updates).forEach(key => {
+            if (key !== 'id' && key !== 'createdAt') {
+                paper[key] = updates[key];
+            }
+        });
+        
+        // Auto-set readAt when status changes to read
+        if (updates.status === 'read' && !paper.readAt) {
+            paper.readAt = Date.now();
+        }
+        
+        this._persistPapers();
+        return paper;
+    },
+    
+    deletePaper(paperId) {
+        const index = this.data.papers.findIndex(p => p.id === paperId);
+        if (index === -1) {
+            console.error('Paper not found:', paperId);
+            return false;
+        }
+        
+        this.data.papers.splice(index, 1);
+        this._persistPapers();
+        
+        // Also delete annotations for this paper
+        const annotationsKey = Storage.KEYS.ANNOTATIONS;
+        const allAnnotations = localStorage.getItem(annotationsKey);
+        if (allAnnotations) {
+            const parsed = JSON.parse(allAnnotations);
+            delete parsed[paperId];
+            localStorage.setItem(annotationsKey, JSON.stringify(parsed));
+        }
+        
+        return true;
+    },
+    
+    _persistPapers() {
+        localStorage.setItem('research_papers_data', JSON.stringify({
+            papers: this.data.papers,
+            lastUpdated: Date.now()
+        }));
+        
+        console.log('Papers persisted to localStorage');
+    },
+    
+    // ========================================
+    // CRUD OPERATIONS - PROJECTS
+    // ========================================
+    
+    updateProject(projectId, updates) {
+        const project = this.data.projects.find(p => p.id === projectId);
+        if (!project) {
+            console.error('Project not found:', projectId);
+            return null;
+        }
+        
+        // Update fields
+        Object.keys(updates).forEach(key => {
+            if (key !== 'id' && key !== 'createdAt') {
+                project[key] = updates[key];
+            }
+        });
+        
+        project.updatedAt = Date.now();
+        
+        this._persistProjects();
+        return project;
+    },
+    
+    _persistProjects() {
+        localStorage.setItem('research_projects_data', JSON.stringify({
+            projects: this.data.projects,
+            lastUpdated: Date.now()
+        }));
+        
+        console.log('Projects persisted to localStorage');
+    },
+    
+    // ========================================
+    // BATCH OPERATIONS
+    // ========================================
+    
+    // Create task directly from paper reading
+    createTaskFromPaper(paperId, taskData) {
+        const paper = this.getPaper(paperId);
+        if (!paper) {
+            console.error('Paper not found:', paperId);
+            return null;
+        }
+        
+        return this.createTask({
+            ...taskData,
+            projectId: paper.projectId,
+            description: taskData.description + `\n\n(Derived from paper: ${paper.title})`
+        });
+    },
+    
+    // Load persisted data from localStorage on startup
+    loadPersistedData() {
+        try {
+            const tasks = localStorage.getItem('research_tasks_data');
+            if (tasks) {
+                const parsed = JSON.parse(tasks);
+                this.data.tasks = parsed.tasks || [];
+                console.log('Loaded persisted tasks from localStorage');
+            }
+            
+            const papers = localStorage.getItem('research_papers_data');
+            if (papers) {
+                const parsed = JSON.parse(papers);
+                this.data.papers = parsed.papers || [];
+                console.log('Loaded persisted papers from localStorage');
+            }
+            
+            const projects = localStorage.getItem('research_projects_data');
+            if (projects) {
+                const parsed = JSON.parse(projects);
+                this.data.projects = parsed.projects || [];
+                console.log('Loaded persisted projects from localStorage');
+            }
+        } catch (error) {
+            console.error('Error loading persisted data:', error);
+        }
     }
 };
 
@@ -142,7 +375,7 @@ const Storage = {
         return localStorage.getItem(this.KEYS.THEME) || 'light';
     },
     
-    saveTheme(theme) {
+    setTheme(theme) {
         localStorage.setItem(this.KEYS.THEME, theme);
     },
     
@@ -153,7 +386,7 @@ const Storage = {
         return parsed[paperId] || null;
     },
     
-    saveAnnotations(paperId, annotations) {
+    setAnnotations(paperId, annotations) {
         const all = localStorage.getItem(this.KEYS.ANNOTATIONS) || '{}';
         const parsed = JSON.parse(all);
         parsed[paperId] = annotations;

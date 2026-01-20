@@ -1,0 +1,26 @@
+{
+  "projects": [
+    {
+      "id": "proj_1",
+      "title": "Machine Learning for Climate Prediction",
+      "objective": "Develop ML models to predict climate patterns using historical data",
+      "stage": "in-progress",
+      "progress": 45,
+      "startDate": "2024-01-15",
+      "tags": ["ML", "Climate", "Research"],
+      "createdAt": 1705276800000,
+      "updatedAt": 1737331200000
+    },
+    {
+      "id": "proj_2",
+      "title": "Quantum Computing Applications",
+      "objective": "Explore practical applications of quantum algorithms in optimization",
+      "stage": "planning",
+      "progress": 15,
+      "startDate": "2025-11-01",
+      "tags": ["Quantum", "Algorithms"],
+      "createdAt": 1730419200000,
+      "updatedAt": 1737331200000
+    }
+  ]
+}

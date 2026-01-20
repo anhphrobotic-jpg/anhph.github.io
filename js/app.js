@@ -8,6 +8,8 @@ const App = {
         // Load all data
         try {
             await DataStore.loadAll();
+            // Load any persisted edits from localStorage
+            DataStore.loadPersistedData();
             console.log('Data loaded successfully');
         } catch (error) {
             console.error('Error loading data:', error);
