@@ -1097,3 +1097,560 @@ textarea.form-input {
         gap: 0.5rem;
     }
 }
+
+/* ===========================================
+   RICH TEXT EDITOR FOR TASK NOTES
+   =========================================== */
+
+.modal-large {
+    max-width: 900px;
+    width: 90%;
+}
+
+.rich-text-editor {
+    border: 1px solid var(--border-main);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+    overflow: hidden;
+}
+
+.editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border-main);
+    background: var(--bg-secondary);
+    align-items: center;
+}
+
+.editor-btn {
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-main);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    transition: all var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+}
+
+.editor-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-dark);
+}
+
+.editor-btn:active {
+    background: var(--bg-active);
+}
+
+.editor-select {
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-main);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    transition: all var(--transition);
+}
+
+.editor-select:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-dark);
+}
+
+.toolbar-separator {
+    width: 1px;
+    height: 24px;
+    background: var(--border-main);
+    margin: 0 0.25rem;
+}
+
+.editor-content {
+    padding: 1.5rem;
+    min-height: 300px;
+    max-height: 500px;
+    overflow-y: auto;
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--text-primary);
+    background: var(--bg-primary);
+}
+
+.editor-content:focus {
+    outline: none;
+}
+
+.editor-content h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 1.5rem 0 1rem 0;
+    color: var(--text-primary);
+}
+
+.editor-content p {
+    margin-bottom: 1rem;
+}
+
+.editor-content ul,
+.editor-content ol {
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.editor-content li {
+    margin-bottom: 0.5rem;
+}
+
+.editor-content strong {
+    font-weight: 600;
+}
+
+.editor-content em {
+    font-style: italic;
+}
+
+.editor-content u {
+    text-decoration: underline;
+}
+
+/* Notes Preview in Table */
+.notes-preview-cell {
+    padding: 0.5rem !important;
+}
+
+.btn-notes {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-main);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    transition: all var(--transition);
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.btn-notes:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-dark);
+    color: var(--text-primary);
+}
+
+.notes-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.notes-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Responsive adjustments for editor */
+@media (max-width: 768px) {
+    .modal-large {
+        width: 95%;
+        max-width: 100%;
+    }
+    
+    .editor-toolbar {
+        padding: 0.5rem;
+    }
+    
+    .editor-btn,
+    .editor-select {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.8rem;
+    }
+    
+    .editor-content {
+        padding: 1rem;
+        min-height: 200px;
+    }
+}
+
+/* ===========================================
+   NOTION-LIKE BLOCK EDITOR
+   =========================================== */
+
+.block-editor-container {
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    margin: 2rem 0;
+    max-width: 900px;
+}
+
+.editor-header {
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 1.5rem;
+}
+
+.editor-title {
+    width: 100%;
+    font-size: 2.5rem;
+    font-weight: 700;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    padding: 0.5rem 0;
+    margin-bottom: 1rem;
+}
+
+.editor-title:focus {
+    outline: none;
+}
+
+.editor-title::placeholder {
+    color: var(--text-muted);
+}
+
+.editor-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.meta-item {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Blocks Container */
+.blocks-container {
+    min-height: 400px;
+}
+
+.block {
+    position: relative;
+    display: flex;
+    gap: 0.5rem;
+    margin: 4px 0;
+    padding: 4px 0;
+    transition: background 0.15s;
+}
+
+.block:hover {
+    background: var(--bg-hover);
+    border-radius: var(--radius-sm);
+}
+
+.block:hover .block-handle {
+    opacity: 1;
+}
+
+.block-handle {
+    opacity: 0;
+    width: 24px;
+    flex-shrink: 0;
+    color: var(--text-muted);
+    cursor: grab;
+    user-select: none;
+    font-size: 0.875rem;
+    padding: 0.25rem;
+    transition: opacity 0.15s;
+}
+
+.block-handle:active {
+    cursor: grabbing;
+}
+
+.block-content {
+    flex: 1;
+    min-height: 1.5em;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+.block-content:focus {
+    outline: none;
+    background: var(--bg-hover);
+}
+
+.block-content:empty:before {
+    content: attr(data-placeholder);
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+/* Headings */
+.block-h1 h1,
+.block-h2 h2,
+.block-h3 h3 {
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.block-h1 h1 {
+    font-size: 2rem;
+    margin-top: 1.5rem;
+}
+
+.block-h2 h2 {
+    font-size: 1.5rem;
+    margin-top: 1.25rem;
+}
+
+.block-h3 h3 {
+    font-size: 1.25rem;
+    margin-top: 1rem;
+}
+
+/* Lists */
+.list-item,
+.todo-item {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+}
+
+.list-marker {
+    flex-shrink: 0;
+    width: 24px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    padding-top: 0.25rem;
+}
+
+.todo-checkbox {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-top: 0.35rem;
+    cursor: pointer;
+    accent-color: var(--primary);
+}
+
+.todo-item .block-content.completed {
+    text-decoration: line-through;
+    color: var(--text-secondary);
+}
+
+/* Code Block */
+.code-block-wrapper {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-main);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.code-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-main);
+}
+
+.code-language-select {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-main);
+    border-radius: var(--radius-sm);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.btn-copy {
+    background: none;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.15s;
+}
+
+.btn-copy:hover {
+    background: var(--bg-hover);
+}
+
+.code-content {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    padding: 1rem;
+    margin: 0;
+    overflow-x: auto;
+    white-space: pre;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.code-content:focus {
+    background: var(--bg-tertiary);
+}
+
+/* Quote Block */
+.block-quote blockquote {
+    border-left: 4px solid var(--primary);
+    padding: 0.5rem 1rem;
+    margin: 0;
+    background: var(--bg-secondary);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    font-style: italic;
+    color: var(--text-secondary);
+}
+
+/* Divider */
+.block-divider {
+    border: none;
+    border-top: 2px solid var(--border-main);
+    margin: 1rem 0;
+}
+
+/* Command Menu */
+.command-menu {
+    position: absolute;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-main);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    min-width: 280px;
+    max-width: 320px;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.command-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.command-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.command-item:last-child {
+    border-bottom: none;
+}
+
+.command-item:hover,
+.command-item.selected {
+    background: var(--bg-hover);
+}
+
+.command-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.command-label {
+    flex: 1;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+.command-desc {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-align: right;
+}
+
+/* Editor Footer */
+.editor-footer {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btn-text {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.875rem;
+    padding: 0.5rem 0;
+    transition: color 0.15s;
+}
+
+.btn-text:hover {
+    color: var(--text-primary);
+}
+
+.footer-hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* Inline Formatting */
+.block-content strong {
+    font-weight: 700;
+}
+
+.block-content em {
+    font-style: italic;
+}
+
+.block-content code {
+    background: var(--bg-tertiary);
+    padding: 0.2em 0.4em;
+    border-radius: var(--radius-sm);
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .block-editor-container {
+        padding: 1rem;
+    }
+    
+    .editor-title {
+        font-size: 1.75rem;
+    }
+    
+    .block-h1 h1 {
+        font-size: 1.5rem;
+    }
+    
+    .block-h2 h2 {
+        font-size: 1.25rem;
+    }
+    
+    .block-h3 h3 {
+        font-size: 1.1rem;
+    }
+    
+    .command-menu {
+        width: 90vw;
+        max-width: none;
+    }
+}

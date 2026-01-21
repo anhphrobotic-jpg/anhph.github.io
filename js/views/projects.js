@@ -92,6 +92,7 @@ const ProjectsView = {
                 ${this.renderTasksSection(project.id, tasks)}
                 ${this.renderPapersSection(project.id, papers)}
                 ${this.renderWhiteboardsSection(project.id, whiteboards)}
+                ${this.renderNotesSection(project.id)}
             </div>
         `;
     },
@@ -188,16 +189,17 @@ const ProjectsView = {
                     <table class="editable-table">
                         <thead>
                             <tr>
-                                <th style="width: 40%">Title</th>
-                                <th style="width: 15%">Type</th>
-                                <th style="width: 15%">Status</th>
-                                <th style="width: 15%">Due Date</th>
-                                <th style="width: 15%">Actions</th>
+                                <th style="width: 30%">Title</th>
+                                <th style="width: 12%">Type</th>
+                                <th style="width: 12%">Status</th>
+                                <th style="width: 12%">Due Date</th>
+                                <th style="width: 20%">Notes</th>
+                                <th style="width: 14%">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${tasks.length === 0 ? `
-                                <tr><td colspan="5" class="empty-cell">No tasks yet. Click "+ Add Task" to get started.</td></tr>
+                                <tr><td colspan="6" class="empty-cell">No tasks yet. Click "+ Add Task" to get started.</td></tr>
                             ` : tasks.map(task => this.renderTaskRow(task)).join('')}
                         </tbody>
                     </table>
@@ -213,6 +215,10 @@ const ProjectsView = {
     },
     
     renderTaskRow(task) {
+        const notesPreview = task.notes 
+            ? task.notes.replace(/<[^>]*>/g, '').substring(0, 50) + (task.notes.length > 50 ? '...' : '')
+            : 'No notes';
+        
         return `
             <tr data-task-id="${task.id}">
                 <td class="editable-cell" onclick="ProjectsView.editTaskInline('${task.id}', 'title', this)">
@@ -238,6 +244,12 @@ const ProjectsView = {
                 </td>
                 <td class="editable-cell" onclick="ProjectsView.editTaskInline('${task.id}', 'dueDate', this)">
                     ${task.dueDate ? UI.formatDate(task.dueDate) : 'No date'}
+                </td>
+                <td class="notes-preview-cell">
+                    <button class="btn-notes" onclick="ProjectsView.showTaskNotesModal('${task.id}')" title="View/Edit Notes">
+                        <span class="notes-icon">📝</span>
+                        <span class="notes-text">${notesPreview}</span>
+                    </button>
                 </td>
                 <td class="action-cell">
                     <button class="btn-icon" onclick="ProjectsView.showEditTaskModal('${task.id}')" title="Edit">✏️</button>
@@ -358,6 +370,50 @@ const ProjectsView = {
     },
     
     // ========================================
+    // RESEARCH NOTES SECTION - Block Editor
+    // ========================================
+    
+    renderNotesSection(projectId) {
+        const noteId = `note_project_${projectId}`;
+        
+        return `
+            <div class="project-section">
+                <div class="section-header">
+                    <h2>📝 Research Notes</h2>
+                    <button class="btn btn-secondary btn-sm" onclick="ProjectsView.toggleNotes('${projectId}')">
+                        <span id="notesToggleText-${projectId}">Show Notes</span>
+                    </button>
+                </div>
+                
+                <div id="notesContainer-${projectId}" style="display: none;">
+                    ${BlockEditor.renderEditor(noteId, projectId)}
+                </div>
+            </div>
+        `;
+    },
+    
+    toggleNotes(projectId) {
+        const container = document.getElementById(`notesContainer-${projectId}`);
+        const toggleText = document.getElementById(`notesToggleText-${projectId}`);
+        
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+            toggleText.textContent = 'Hide Notes';
+            
+            // Initialize editor when shown
+            const noteId = `note_project_${projectId}`;
+            setTimeout(() => {
+                BlockEditor.init(noteId);
+                console.log('✅ BlockEditor initialized for:', noteId);
+            }, 100);
+        } else {
+            container.style.display = 'none';
+            toggleText.textContent = 'Show Notes';
+            BlockEditor.destroy();
+        }
+    },
+    
+    // ========================================
     // TASK CRUD OPERATIONS
     // ========================================
     
@@ -430,7 +486,8 @@ const ProjectsView = {
             type: document.getElementById('taskType').value,
             priority: document.getElementById('taskPriority').value,
             status: 'todo',
-            dueDate: document.getElementById('taskDueDate').value || null
+            dueDate: document.getElementById('taskDueDate').value || null,
+            notes: ''
         };
         
         DataStore.createTask(taskData);
@@ -537,6 +594,125 @@ const ProjectsView = {
         DataStore.deleteTask(taskId);
         App.navigate(`projects/${projectId}`);
         UI.showToast('Task deleted', 'success');
+    },
+    
+    // ========================================
+    // TASK NOTES MODAL - Rich Text Editor
+    // ========================================
+    
+    showTaskNotesModal(taskId) {
+        const task = DataStore.getTasks().find(t => t.id === taskId);
+        if (!task) return;
+        
+        const modal = `
+            <div class="modal active" id="taskNotesModal">
+                <div class="modal-content modal-large">
+                    <div class="modal-header">
+                        <h3>📝 Task Notes: ${task.title}</h3>
+                        <button class="modal-close" onclick="ProjectsView.closeModal('taskNotesModal')">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="rich-text-editor">
+                            <div class="editor-toolbar">
+                                <button type="button" class="editor-btn" onclick="ProjectsView.formatText('bold')" title="Bold (Ctrl+B)">
+                                    <strong>B</strong>
+                                </button>
+                                <button type="button" class="editor-btn" onclick="ProjectsView.formatText('italic')" title="Italic (Ctrl+I)">
+                                    <em>I</em>
+                                </button>
+                                <button type="button" class="editor-btn" onclick="ProjectsView.formatText('underline')" title="Underline (Ctrl+U)">
+                                    <u>U</u>
+                                </button>
+                                <div class="toolbar-separator"></div>
+                                <button type="button" class="editor-btn" onclick="ProjectsView.formatText('insertUnorderedList')" title="Bullet List">
+                                    • List
+                                </button>
+                                <button type="button" class="editor-btn" onclick="ProjectsView.formatText('insertOrderedList')" title="Numbered List">
+                                    1. List
+                                </button>
+                                <div class="toolbar-separator"></div>
+                                <button type="button" class="editor-btn" onclick="ProjectsView.formatText('formatBlock', 'h3')" title="Heading 3">
+                                    H3
+                                </button>
+                                <button type="button" class="editor-btn" onclick="ProjectsView.formatText('formatBlock', 'p')" title="Paragraph">
+                                    P
+                                </button>
+                                <div class="toolbar-separator"></div>
+                                <select class="editor-select" onchange="ProjectsView.changeTextColor(this.value); this.value=''">
+                                    <option value="">Text Color</option>
+                                    <option value="#000000">Black</option>
+                                    <option value="#ef4444">Red</option>
+                                    <option value="#10b981">Green</option>
+                                    <option value="#2563eb">Blue</option>
+                                    <option value="#f59e0b">Orange</option>
+                                    <option value="#8b5cf6">Purple</option>
+                                </select>
+                                <select class="editor-select" onchange="ProjectsView.changeBackgroundColor(this.value); this.value=''">
+                                    <option value="">Highlight</option>
+                                    <option value="#fef3c7">Yellow</option>
+                                    <option value="#dbeafe">Blue</option>
+                                    <option value="#d1fae5">Green</option>
+                                    <option value="#fce7f3">Pink</option>
+                                    <option value="transparent">Clear</option>
+                                </select>
+                                <div class="toolbar-separator"></div>
+                                <button type="button" class="editor-btn" onclick="ProjectsView.formatText('removeFormat')" title="Clear Formatting">
+                                    Clear
+                                </button>
+                            </div>
+                            <div 
+                                id="taskNotesEditor" 
+                                class="editor-content" 
+                                contenteditable="true"
+                                spellcheck="true"
+                            >${task.notes || '<p>Start writing your notes here... Supports English and Vietnamese.</p>'}</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="ProjectsView.closeModal('taskNotesModal')">Cancel</button>
+                        <button class="btn btn-primary" onclick="ProjectsView.saveTaskNotes('${taskId}')">Save Notes</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modal);
+        
+        // Focus editor
+        setTimeout(() => {
+            const editor = document.getElementById('taskNotesEditor');
+            if (editor) editor.focus();
+        }, 100);
+    },
+    
+    formatText(command, value = null) {
+        document.execCommand(command, false, value);
+        document.getElementById('taskNotesEditor').focus();
+    },
+    
+    changeTextColor(color) {
+        document.execCommand('foreColor', false, color);
+        document.getElementById('taskNotesEditor').focus();
+    },
+    
+    changeBackgroundColor(color) {
+        document.execCommand('backColor', false, color);
+        document.getElementById('taskNotesEditor').focus();
+    },
+    
+    saveTaskNotes(taskId) {
+        const editor = document.getElementById('taskNotesEditor');
+        if (!editor) return;
+        
+        const notes = editor.innerHTML;
+        DataStore.updateTask(taskId, { notes: notes });
+        
+        this.closeModal('taskNotesModal');
+        
+        // Refresh the current project view
+        const task = DataStore.getTasks().find(t => t.id === taskId);
+        App.navigate(`projects/${task.projectId}`);
+        UI.showToast('Notes saved successfully!', 'success');
     },
     
     // ========================================

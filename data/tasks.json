@@ -10,7 +10,8 @@
       "priority": "high",
       "dueDate": "2025-10-15",
       "createdAt": 1726358400000,
-      "completedAt": 1728950400000
+      "completedAt": 1728950400000,
+      "notes": ""
     },
     {
       "id": "task_2",
@@ -22,7 +23,8 @@
       "priority": "high",
       "dueDate": "2025-11-01",
       "createdAt": 1728345600000,
-      "completedAt": 1730419200000
+      "completedAt": 1730419200000,
+      "notes": ""
     },
     {
       "id": "task_3",
@@ -34,7 +36,8 @@
       "priority": "high",
       "dueDate": "2026-01-30",
       "createdAt": 1735948800000,
-      "completedAt": null
+      "completedAt": null,
+      "notes": ""
     },
     {
       "id": "task_4",
@@ -46,7 +49,8 @@
       "priority": "medium",
       "dueDate": "2026-01-25",
       "createdAt": 1735084800000,
-      "completedAt": null
+      "completedAt": null,
+      "notes": ""
     },
     {
       "id": "task_5",
