@@ -8,29 +8,50 @@ const PDFViewer = {
     annotations: [],
     
     async load(paperId) {
+        console.log('=== PDFViewer.load START ===');
+        console.log('paperId:', paperId);
+        
         this.paperId = paperId;
         const paper = DataStore.getPaper(paperId);
-        if (!paper || !paper.pdfPath) {
-            console.error('Paper or PDF path not found');
+        console.log('Found paper:', paper);
+        console.log('Paper has pdfPath:', paper?.pdfPath);
+        console.log('Paper has pdfData:', paper?.pdfData ? 'Yes (length: ' + paper.pdfData.length + ')' : 'No');
+        
+        if (!paper || (!paper.pdfPath && !paper.hasPDF)) {
+            console.error('Paper or PDF not found');
+            const container = document.getElementById('pdfViewerContainer');
+            if (container) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>PDF Not Available</h3>
+                        <p>No PDF file has been uploaded for this paper yet.</p>
+                        <p class="text-sm text-secondary">You can edit the paper to upload a PDF file.</p>
+                    </div>
+                `;
+            }
             return;
         }
         
         const container = document.getElementById('pdfViewerContainer');
-        if (!container) return;
+        console.log('Container found:', !!container);
+        if (!container) {
+            console.error('pdfViewerContainer not found!');
+            return;
+        }
         
         container.innerHTML = `
             <div class="pdf-toolbar">
-                <button class="btn btn-sm" onclick="PDFViewer.previousPage()">← Previous</button>
+                <button class="btn btn-sm" id="pdfPrevPage">← Previous</button>
                 <span id="pageInfo">Page 1 of ...</span>
-                <button class="btn btn-sm" onclick="PDFViewer.nextPage()">Next →</button>
-                <button class="btn btn-sm" onclick="PDFViewer.zoomOut()">-</button>
+                <button class="btn btn-sm" id="pdfNextPage">Next →</button>
+                <button class="btn btn-sm" id="pdfZoomOut">-</button>
                 <span id="zoomInfo">120%</span>
-                <button class="btn btn-sm" onclick="PDFViewer.zoomIn()">+</button>
+                <button class="btn btn-sm" id="pdfZoomIn">+</button>
             </div>
             <div class="pdf-annotations-toolbar">
-                <button class="btn btn-sm" onclick="PDFViewer.setAnnotationMode('highlight')">🖍️ Highlight</button>
-                <button class="btn btn-sm" onclick="PDFViewer.setAnnotationMode('note')">📝 Note</button>
-                <button class="btn btn-sm" onclick="PDFViewer.saveAnnotations()">💾 Save</button>
+                <button class="btn btn-sm" id="pdfHighlight">🖍️ Highlight</button>
+                <button class="btn btn-sm" id="pdfNote">📝 Note</button>
+                <button class="btn btn-sm" id="pdfSave">💾 Save</button>
             </div>
             <div class="pdf-canvas-wrapper">
                 <canvas id="pdfCanvas"></canvas>
@@ -38,25 +59,98 @@ const PDFViewer = {
             </div>
         `;
         
-        // Load annotations from storage
-        this.annotations = Storage.getAnnotations(paperId);
+        // Load annotations from storage - ensure it's an array
+        this.annotations = Storage.getAnnotations(paperId) || [];
+        
+        console.log('About to load PDF...');
+        console.log('pdfPath available:', !!paper.pdfPath);
+        console.log('hasPDF flag:', !!paper.hasPDF);
+        console.log('pdfjsLib available:', typeof pdfjsLib !== 'undefined');
+        
+        // Check if paper has PDF in IndexedDB
+        let pdfSource = paper.pdfPath;
+        if (paper.hasPDF) {
+            console.log('Loading PDF from IndexedDB...');
+            const pdfRecord = await PDFStorage.getPDF(paperId);
+            if (pdfRecord && pdfRecord.pdfData) {
+                pdfSource = pdfRecord.pdfData;
+                console.log('PDF loaded from IndexedDB, length:', pdfSource.length);
+            }
+        }
         
         try {
-            const loadingTask = pdfjsLib.getDocument(paper.pdfPath);
+            // Check if PDF.js is loaded
+            if (typeof pdfjsLib === 'undefined') {
+                throw new Error('PDF.js library not loaded. Please check internet connection.');
+            }
+            
+            console.log('Loading PDF from source, length:', pdfSource?.length);
+            
+            const loadingTask = pdfjsLib.getDocument(pdfSource);
             this.pdfDoc = await loadingTask.promise;
             this.pageCount = this.pdfDoc.numPages;
             this.currentPage = 1;
+            
+            console.log('PDF loaded successfully, pages:', this.pageCount);
+            
             await this.renderPage();
             this.initAnnotationCanvas();
+            
+            // Setup button event listeners after PDF is loaded
+            this.setupButtonListeners();
         } catch (error) {
+            console.error('Error loading PDF:', error);
             container.innerHTML = `
                 <div class="empty-state">
                     <h3>Cannot load PDF</h3>
-                    <p>Make sure ${paper.pdfPath} exists</p>
+                    <p>Unable to load PDF file</p>
                     <p class="text-sm text-secondary">Error: ${error.message}</p>
                 </div>
             `;
         }
+    },
+    
+    setupButtonListeners() {
+        console.log('Setting up PDF viewer button listeners...');
+        const prevBtn = document.getElementById('pdfPrevPage');
+        const nextBtn = document.getElementById('pdfNextPage');
+        const zoomInBtn = document.getElementById('pdfZoomIn');
+        const zoomOutBtn = document.getElementById('pdfZoomOut');
+        const highlightBtn = document.getElementById('pdfHighlight');
+        const noteBtn = document.getElementById('pdfNote');
+        const saveBtn = document.getElementById('pdfSave');
+        
+        console.log('Found buttons:', { prevBtn: !!prevBtn, nextBtn: !!nextBtn, zoomInBtn: !!zoomInBtn, zoomOutBtn: !!zoomOutBtn });
+        
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => {
+                console.log('Previous page clicked');
+                this.previousPage();
+            });
+        }
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                console.log('Next page clicked');
+                this.nextPage();
+            });
+        }
+        if (zoomInBtn) {
+            zoomInBtn.addEventListener('click', () => {
+                console.log('Zoom in clicked');
+                this.zoomIn();
+            });
+        }
+        if (zoomOutBtn) {
+            zoomOutBtn.addEventListener('click', () => {
+                console.log('Zoom out clicked');
+                this.zoomOut();
+            });
+        }
+        if (highlightBtn) highlightBtn.addEventListener('click', () => this.setAnnotationMode('highlight'));
+        if (noteBtn) noteBtn.addEventListener('click', () => this.setAnnotationMode('note'));
+        if (saveBtn) saveBtn.addEventListener('click', () => this.saveAnnotations());
+        
+        console.log('PDF viewer buttons initialized successfully');
     },
     
     async renderPage() {
@@ -238,6 +332,13 @@ const PDFViewer = {
     },
     
     openFullscreen(paperId) {
-        alert('Fullscreen PDF viewer coming soon!');
+        const paper = DataStore.getPaper(paperId);
+        if (!paper || !paper.pdfPath) {
+            UI.showToast('PDF not available', 'error');
+            return;
+        }
+        
+        // Open PDF in browser's native PDF viewer
+        window.open(paper.pdfPath, '_blank');
     }
 };

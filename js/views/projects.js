@@ -91,8 +91,8 @@ const ProjectsView = {
                 ${this.renderProjectHeader(project)}
                 ${this.renderTasksSection(project.id, tasks)}
                 ${this.renderPapersSection(project.id, papers)}
-                ${this.renderWhiteboardsSection(project.id, whiteboards)}
                 ${this.renderNotesSection(project.id)}
+                ${this.renderWhiteboardsSection(project.id, whiteboards)}
             </div>
         `;
     },
@@ -189,12 +189,36 @@ const ProjectsView = {
                     <table class="editable-table">
                         <thead>
                             <tr>
-                                <th style="width: 30%">Title</th>
-                                <th style="width: 12%">Type</th>
-                                <th style="width: 12%">Status</th>
-                                <th style="width: 12%">Due Date</th>
-                                <th style="width: 20%">Notes</th>
-                                <th style="width: 14%">Actions</th>
+                                <th style="width: 35%">Title</th>
+                                <th style="width: 15%">
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span>Type</span>
+                                        <select class="inline-select" style="font-size: 0.75rem; padding: 0.125rem 0.25rem;" onchange="ProjectsView.filterTasksByType('${projectId}', this.value)">
+                                            <option value="">All</option>
+                                            <option value="research">🔬 Research</option>
+                                            <option value="data">📊 Data</option>
+                                            <option value="implementation">💻 Implementation</option>
+                                            <option value="experiment">🧪 Experiment</option>
+                                            <option value="writing">✍️ Writing</option>
+                                            <option value="admin">📁 Admin</option>
+                                            <option value="meeting">💬 Meeting</option>
+                                        </select>
+                                    </div>
+                                </th>
+                                <th style="width: 15%">
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span>Status</span>
+                                        <select class="inline-select" style="font-size: 0.75rem; padding: 0.125rem 0.25rem;" onchange="ProjectsView.filterTasksByStatus('${projectId}', this.value)">
+                                            <option value="">All</option>
+                                            <option value="todo">📋 Todo</option>
+                                            <option value="in-progress">🔄 In Progress</option>
+                                            <option value="done">✅ Done</option>
+                                        </select>
+                                    </div>
+                                </th>
+                                <th style="width: 12%">Tag</th>
+                                <th style="width: 8%" title="Notes">📝</th>
+                                <th style="width: 15%">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -215,9 +239,20 @@ const ProjectsView = {
     },
     
     renderTaskRow(task) {
-        const notesPreview = task.notes 
-            ? task.notes.replace(/<[^>]*>/g, '').substring(0, 50) + (task.notes.length > 50 ? '...' : '')
-            : 'No notes';
+        // Get task note from localStorage
+        const noteId = `note_task_${task.id}`;
+        const noteData = localStorage.getItem(noteId);
+        let notesPreview = 'Click to add notes';
+        
+        if (noteData) {
+            try {
+                const note = JSON.parse(noteData);
+                const preview = this.getTaskNotePreview(note);
+                notesPreview = preview || 'Click to edit notes';
+            } catch (e) {
+                console.error('Error parsing task note:', e);
+            }
+        }
         
         return `
             <tr data-task-id="${task.id}">
@@ -225,31 +260,28 @@ const ProjectsView = {
                     <strong>${task.title}</strong>
                 </td>
                 <td>
-                    <select class="inline-select" onchange="ProjectsView.updateTaskField('${task.id}', 'type', this.value)">
-                        <option value="research" ${task.type === 'research' ? 'selected' : ''}>Research</option>
-                        <option value="data" ${task.type === 'data' ? 'selected' : ''}>Data</option>
-                        <option value="implementation" ${task.type === 'implementation' ? 'selected' : ''}>Implementation</option>
-                        <option value="experiment" ${task.type === 'experiment' ? 'selected' : ''}>Experiment</option>
-                        <option value="writing" ${task.type === 'writing' ? 'selected' : ''}>Writing</option>
-                        <option value="admin" ${task.type === 'admin' ? 'selected' : ''}>Admin</option>
-                        <option value="meeting" ${task.type === 'meeting' ? 'selected' : ''}>Meeting</option>
+                    <select class="inline-select task-type-select task-type-${task.type}" onchange="ProjectsView.updateTaskField('${task.id}', 'type', this.value)">
+                        <option value="research" ${task.type === 'research' ? 'selected' : ''}>🔬 Research</option>
+                        <option value="data" ${task.type === 'data' ? 'selected' : ''}>📊 Data</option>
+                        <option value="implementation" ${task.type === 'implementation' ? 'selected' : ''}>💻 Implementation</option>
+                        <option value="experiment" ${task.type === 'experiment' ? 'selected' : ''}>🧪 Experiment</option>
+                        <option value="writing" ${task.type === 'writing' ? 'selected' : ''}>✍️ Writing</option>
+                        <option value="admin" ${task.type === 'admin' ? 'selected' : ''}>📁 Admin</option>
+                        <option value="meeting" ${task.type === 'meeting' ? 'selected' : ''}>💬 Meeting</option>
                     </select>
                 </td>
                 <td>
-                    <select class="inline-select" onchange="ProjectsView.updateTaskField('${task.id}', 'status', this.value)">
-                        <option value="todo" ${task.status === 'todo' ? 'selected' : ''}>Todo</option>
-                        <option value="in-progress" ${task.status === 'in-progress' ? 'selected' : ''}>In Progress</option>
-                        <option value="done" ${task.status === 'done' ? 'selected' : ''}>Done</option>
+                    <select class="inline-select task-status-select task-status-${task.status}" onchange="ProjectsView.updateTaskField('${task.id}', 'status', this.value)">
+                        <option value="todo" ${task.status === 'todo' ? 'selected' : ''}>📋 Todo</option>
+                        <option value="in-progress" ${task.status === 'in-progress' ? 'selected' : ''}>🔄 In Progress</option>
+                        <option value="done" ${task.status === 'done' ? 'selected' : ''}>✅ Done</option>
                     </select>
                 </td>
-                <td class="editable-cell" onclick="ProjectsView.editTaskInline('${task.id}', 'dueDate', this)">
-                    ${task.dueDate ? UI.formatDate(task.dueDate) : 'No date'}
+                <td class="editable-cell" onclick="ProjectsView.editTaskInline('${task.id}', 'tag', this)">
+                    <span class="task-tag">${task.tag ? '🏷️ ' + task.tag : '<span style="color: var(--text-muted); font-style: italic;">Add tag</span>'}</span>
                 </td>
-                <td class="notes-preview-cell">
-                    <button class="btn-notes" onclick="ProjectsView.showTaskNotesModal('${task.id}')" title="View/Edit Notes">
-                        <span class="notes-icon">📝</span>
-                        <span class="notes-text">${notesPreview}</span>
-                    </button>
+                <td class="notes-preview-cell" style="cursor: pointer; text-align: center;" onclick="ProjectsView.openTaskNote('${task.projectId}', '${task.id}', '${task.title}')" title="${notesPreview}">
+                    <span class="notes-icon" style="font-size: 1.25rem;">📝</span>
                 </td>
                 <td class="action-cell">
                     <button class="btn-icon" onclick="ProjectsView.showEditTaskModal('${task.id}')" title="Edit">✏️</button>
@@ -281,12 +313,33 @@ const ProjectsView = {
                     <table class="editable-table">
                         <thead>
                             <tr>
-                                <th style="width: 35%">Title</th>
-                                <th style="width: 15%">Journal/Venue</th>
-                                <th style="width: 10%">Year</th>
-                                <th style="width: 12%">Status</th>
-                                <th style="width: 13%">Importance</th>
-                                <th style="width: 15%">Actions</th>
+                                <th style="width: 30%">Title</th>
+                                <th style="width: 13%">Journal/Venue</th>
+                                <th style="width: 7%">Year</th>
+                                <th style="width: 13%">
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span>Status</span>
+                                        <select class="inline-select" style="font-size: 0.75rem; padding: 0.125rem 0.25rem;" onchange="ProjectsView.filterPapersByStatus('${projectId}', this.value)">
+                                            <option value="">All</option>
+                                            <option value="to-read">To Read</option>
+                                            <option value="reading">Reading</option>
+                                            <option value="read">Read</option>
+                                        </select>
+                                    </div>
+                                </th>
+                                <th style="width: 13%">
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span>Importance</span>
+                                        <select class="inline-select" style="font-size: 0.75rem; padding: 0.125rem 0.25rem;" onchange="ProjectsView.filterPapersByImportance('${projectId}', this.value)">
+                                            <option value="">All</option>
+                                            <option value="critical">🔥 Critical</option>
+                                            <option value="high">⚡ High</option>
+                                            <option value="medium">📄 Medium</option>
+                                            <option value="low">Low</option>
+                                        </select>
+                                    </div>
+                                </th>
+                                <th style="width: 18%">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -307,14 +360,30 @@ const ProjectsView = {
     },
     
     renderPaperRow(paper) {
+        // Get paper note preview
+        const noteId = `note_paper_${paper.id}`;
+        const noteData = localStorage.getItem(noteId);
+        let notesPreview = 'Click to add notes';
+        
+        if (noteData) {
+            try {
+                const note = JSON.parse(noteData);
+                const preview = this.getTaskNotePreview(note);
+                notesPreview = preview || 'Click to edit notes';
+            } catch (e) {
+                console.error('Error parsing paper note:', e);
+            }
+        }
+        
         return `
-            <tr data-paper-id="${paper.id}" onclick="App.navigate('papers/${paper.id}')" style="cursor: pointer;">
-                <td>
+            <tr data-paper-id="${paper.id}">
+                <td style="cursor: pointer;" onclick="App.navigate('papers/${paper.id}')">
                     <strong>${paper.title}</strong>
                     ${paper.keyTakeaways && paper.keyTakeaways.length > 0 ? '<span class="badge-mini">💡</span>' : ''}
+                    ${paper.hasPDF ? '<span class="badge-mini">📎</span>' : ''}
                 </td>
-                <td class="text-sm">${paper.journal}</td>
-                <td class="text-sm">${paper.year}</td>
+                <td class="text-sm">${paper.journal || ''}</td>
+                <td class="text-sm">${paper.year || ''}</td>
                 <td onclick="event.stopPropagation()">
                     <select class="inline-select" onchange="ProjectsView.updatePaperField('${paper.id}', 'status', this.value)">
                         <option value="to-read" ${paper.status === 'to-read' ? 'selected' : ''}>To Read</option>
@@ -331,6 +400,7 @@ const ProjectsView = {
                     </select>
                 </td>
                 <td class="action-cell" onclick="event.stopPropagation()">
+                    <button class="btn-icon" onclick="App.navigate('papers/${paper.id}')" title="View Details">👁️</button>
                     <button class="btn-icon" onclick="ProjectsView.showEditPaperModal('${paper.id}')" title="Edit">✏️</button>
                     <button class="btn-icon" onclick="ProjectsView.deletePaper('${paper.id}')" title="Delete">🗑️</button>
                 </td>
@@ -370,47 +440,403 @@ const ProjectsView = {
     },
     
     // ========================================
+    // TASK NOTE PREVIEW & EDITOR
+    // ========================================
+    
+    getTaskNotePreview(note) {
+        if (!note || !note.blocks || note.blocks.length === 0) {
+            return '';
+        }
+        
+        // Get first 2 blocks
+        const previewBlocks = note.blocks.slice(0, 2);
+        const texts = previewBlocks
+            .map(block => {
+                const content = block.content || '';
+                // Strip HTML tags
+                const text = content.replace(/<[^>]*>/g, '');
+                return text.trim();
+            })
+            .filter(text => text.length > 0);
+        
+        const previewText = texts.join(' ');
+        // Truncate to 60 characters
+        return previewText.length > 60 ? previewText.substring(0, 60) + '...' : previewText;
+    },
+    
+    openTaskNote(projectId, taskId, taskTitle) {
+        // Navigate using hash to enable browser back button
+        window.location.hash = `#projects/${projectId}/task-note/${taskId}`;
+    },
+    
+    renderTaskNoteEditor(projectId, taskId, taskTitle) {
+        const task = DataStore.getTasks().find(t => t.id === taskId);
+        if (!task) {
+            UI.showToast('Task not found', 'error');
+            window.location.hash = `#projects/${projectId}`;
+            return;
+        }
+        
+        const noteId = `note_task_${taskId}`;
+        const project = DataStore.getProject(projectId);
+        const projectName = project ? (project.name || project.title || 'Project') : 'Project';
+        
+        // Get or create note
+        let note = JSON.parse(localStorage.getItem(noteId));
+        if (!note) {
+            note = {
+                id: noteId,
+                taskId: taskId,
+                projectId: projectId,
+                title: `Notes for: ${taskTitle}`,
+                blocks: [{
+                    id: 'block_' + Date.now(),
+                    type: 'paragraph',
+                    content: ''
+                }],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            localStorage.setItem(noteId, JSON.stringify(note));
+        }
+        
+        const mainContent = document.getElementById('mainContent');
+        if (!mainContent) return;
+        
+        mainContent.innerHTML = `
+            <div class="view-header">
+                <button class="btn-text" id="backToProjectBtn">
+                    ← Back to ${projectName}
+                </button>
+                <div class="note-title-container">
+                    <h2 style="margin: 0; color: var(--text-primary);">📝 ${taskTitle}</h2>
+                </div>
+                <button class="btn-text" id="deleteTaskNoteBtn">
+                    🗑️ Delete Note
+                </button>
+            </div>
+
+            <div class="editor-container">
+                ${BlockEditor.renderEditor(noteId)}
+            </div>
+        `;
+        
+        // Setup event listeners after DOM is ready
+        setTimeout(() => {
+            const backBtn = document.getElementById('backToProjectBtn');
+            if (backBtn) {
+                backBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    console.log('Task note back button clicked, navigating to project:', projectId);
+                    window.location.hash = `#projects/${projectId}`;
+                    setTimeout(() => {
+                        if (window.App && typeof window.App.handleRoute === 'function') {
+                            window.App.handleRoute();
+                        }
+                    }, 50);
+                });
+            }
+            
+            const deleteBtn = document.getElementById('deleteTaskNoteBtn');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (confirm('Delete this task note? This cannot be undone.')) {
+                        this.deleteTaskNoteAndGoBack(projectId, taskId);
+                    }
+                });
+            }
+            
+            // Initialize block editor with same params as project notes
+            BlockEditor.init(noteId, projectId);
+        }, 100);
+    },
+    
+    deleteTaskNoteAndGoBack(projectId, taskId) {
+        const noteId = `note_task_${taskId}`;
+        localStorage.removeItem(noteId);
+        console.log('Deleted task note:', noteId);
+        window.location.hash = `#projects/${projectId}`;
+        setTimeout(() => {
+            if (window.App && typeof window.App.handleRoute === 'function') {
+                window.App.handleRoute();
+            }
+        }, 50);
+    },
+    
+    // ========================================
     // RESEARCH NOTES SECTION - Block Editor
     // ========================================
     
     renderNotesSection(projectId) {
-        const noteId = `note_project_${projectId}`;
-        
         return `
             <div class="project-section">
                 <div class="section-header">
                     <h2>📝 Research Notes</h2>
-                    <button class="btn btn-secondary btn-sm" onclick="ProjectsView.toggleNotes('${projectId}')">
-                        <span id="notesToggleText-${projectId}">Show Notes</span>
+                    <button class="btn btn-primary btn-sm" onclick="ProjectsView.createNote('${projectId}')">
+                        <span class="btn-icon">+</span>
+                        New Note
                     </button>
                 </div>
                 
-                <div id="notesContainer-${projectId}" style="display: none;">
-                    ${BlockEditor.renderEditor(noteId, projectId)}
+                <div class="notes-grid" id="notesGrid-${projectId}">
+                    ${this.renderProjectNotes(projectId)}
                 </div>
             </div>
         `;
     },
     
-    toggleNotes(projectId) {
-        const container = document.getElementById(`notesContainer-${projectId}`);
-        const toggleText = document.getElementById(`notesToggleText-${projectId}`);
+    renderProjectNotes(projectId) {
+        const notes = this.getProjectNotes(projectId);
         
-        if (container.style.display === 'none') {
-            container.style.display = 'block';
-            toggleText.textContent = 'Hide Notes';
-            
-            // Initialize editor when shown
-            const noteId = `note_project_${projectId}`;
-            setTimeout(() => {
-                BlockEditor.init(noteId);
-                console.log('✅ BlockEditor initialized for:', noteId);
-            }, 100);
-        } else {
-            container.style.display = 'none';
-            toggleText.textContent = 'Show Notes';
-            BlockEditor.destroy();
+        if (notes.length === 0) {
+            return `
+                <div class="empty-state-small">
+                    <div class="empty-icon">📝</div>
+                    <p>No notes yet. Create your first note!</p>
+                </div>
+            `;
         }
+        
+        return notes.map(note => `
+            <div class="note-card" onclick="ProjectsView.openNote('${projectId}', '${note.id}')">
+                <div class="note-card-header">
+                    <h3>${note.title || 'Untitled Note'}</h3>
+                    <div class="note-card-actions" onclick="event.stopPropagation()">
+                        <button class="btn-icon-sm" onclick="ProjectsView.renameNote('${projectId}', '${note.id}')" title="Rename">
+                            ✏️
+                        </button>
+                        <button class="btn-icon-sm" onclick="ProjectsView.deleteNote('${projectId}', '${note.id}')" title="Delete">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+                <div class="note-card-preview">
+                    ${this.getNotePreview(note)}
+                </div>
+                <div class="note-card-footer">
+                    <span class="note-card-date">${this.formatNoteDate(note.updatedAt || note.createdAt)}</span>
+                    <span class="note-card-blocks">${note.blocks.length} block${note.blocks.length !== 1 ? 's' : ''}</span>
+                </div>
+            </div>
+        `).join('');
+    },
+    
+    getProjectNotes(projectId) {
+        const notes = [];
+        const prefix = `note_project_${projectId}_`;
+        
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(prefix)) {
+                try {
+                    const note = JSON.parse(localStorage.getItem(key));
+                    notes.push(note);
+                } catch (e) {
+                    console.error('Error parsing note:', key, e);
+                }
+            }
+        }
+        
+        return notes.sort((a, b) => {
+            const dateA = new Date(a.updatedAt || a.createdAt);
+            const dateB = new Date(b.updatedAt || b.createdAt);
+            return dateB - dateA;
+        });
+    },
+    
+    getNotePreview(note) {
+        if (!note.blocks || note.blocks.length === 0) {
+            return '<span class="note-empty">Empty note</span>';
+        }
+        
+        const firstBlocks = note.blocks.slice(0, 3);
+        const preview = firstBlocks.map(block => {
+            const content = block.content || '';
+            const stripped = content.replace(/<[^>]*>/g, '').trim();
+            if (!stripped) return '';
+            const truncated = stripped.substring(0, 100);
+            return `<div class="preview-block">${truncated}${stripped.length > 100 ? '...' : ''}</div>`;
+        }).filter(p => p).join('');
+        
+        return preview || '<span class="note-empty">Empty note</span>';
+    },
+    
+    formatNoteDate(dateStr) {
+        if (!dateStr) return 'Just now';
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins} min${diffMins !== 1 ? 's' : ''} ago`;
+        if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+        if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+        
+        return date.toLocaleDateString();
+    },
+    
+    createNote(projectId) {
+        const noteId = `note_project_${projectId}_${Date.now()}`;
+        const note = {
+            id: noteId,
+            projectId: projectId,
+            title: 'Untitled Note',
+            blocks: [{
+                id: 'block_' + Date.now(),
+                type: 'paragraph',
+                content: ''
+            }],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        
+        localStorage.setItem(noteId, JSON.stringify(note));
+        
+        // Re-render notes grid to show new note
+        const grid = document.getElementById(`notesGrid-${projectId}`);
+        if (grid) {
+            grid.innerHTML = this.renderProjectNotes(projectId);
+        }
+        
+        UI.showToast('Note created', 'success');
+    },
+    
+    openNote(projectId, noteId) {
+        console.log('openNote called with:', projectId, noteId);
+        // Navigate using hash to enable browser back button
+        window.location.hash = `#projects/${projectId}/note/${noteId}`;
+    },
+    
+    renderNoteEditor(projectId, noteId) {
+        console.log('renderNoteEditor called with:', projectId, noteId);
+        const project = DataStore.getProject(projectId);
+        console.log('Found project:', project);
+        
+        if (!project) {
+            UI.showToast('Project not found', 'error');
+            window.location.hash = `#projects`;
+            return;
+        }
+        
+        const note = JSON.parse(localStorage.getItem(noteId));
+        if (!note) {
+            UI.showToast('Note not found', 'error');
+            window.location.hash = `#projects/${projectId}`;
+            return;
+        }
+        
+        const mainContent = document.getElementById('mainContent');
+        const projectName = project.name || 'Project';
+        mainContent.innerHTML = `
+            <div class="view-header">
+                <button class="btn-text" id="backToProjectBtn">
+                    ← Back to ${projectName}
+                </button>
+                <div class="note-title-container">
+                    <input type="text" 
+                           class="note-title-input" 
+                           value="${(note.title || 'Untitled Note').replace(/"/g, '&quot;')}"
+                           onchange="ProjectsView.updateNoteTitle('${noteId}', this.value)"
+                           placeholder="Untitled Note">
+                </div>
+                <button class="btn-text" id="deleteNoteBtn">
+                    🗑️ Delete
+                </button>
+            </div>
+
+            <div class="editor-container">
+                ${BlockEditor.renderEditor(noteId)}
+            </div>
+        `;
+
+        // Setup event listeners
+        setTimeout(() => {
+            const backBtn = document.getElementById('backToProjectBtn');
+            if (backBtn) {
+                backBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    console.log('Back button clicked, navigating to project:', projectId);
+                    // Navigate using hash
+                    window.location.hash = `#projects/${projectId}`;
+                    // Force reload the route
+                    setTimeout(() => {
+                        if (window.App && typeof window.App.handleRoute === 'function') {
+                            window.App.handleRoute();
+                        }
+                    }, 50);
+                });
+            }
+            
+            const deleteBtn = document.getElementById('deleteNoteBtn');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', () => {
+                    this.deleteNoteAndGoBack(projectId, noteId);
+                });
+            }
+            
+            BlockEditor.init(noteId, projectId);
+        }, 100);
+    },
+    
+    updateNoteTitle(noteId, title) {
+        const note = JSON.parse(localStorage.getItem(noteId));
+        if (note) {
+            note.title = title;
+            note.updatedAt = new Date().toISOString();
+            localStorage.setItem(noteId, JSON.stringify(note));
+        }
+    },
+    
+    renameNote(projectId, noteId) {
+        const note = JSON.parse(localStorage.getItem(noteId));
+        if (!note) return;
+
+        const newTitle = prompt('Enter new title:', note.title || 'Untitled Note');
+        if (newTitle && newTitle.trim()) {
+            note.title = newTitle.trim();
+            note.updatedAt = new Date().toISOString();
+            localStorage.setItem(noteId, JSON.stringify(note));
+            
+            // Re-render notes grid
+            const grid = document.getElementById(`notesGrid-${projectId}`);
+            if (grid) {
+                grid.innerHTML = this.renderProjectNotes(projectId);
+            }
+            
+            UI.showToast('Note renamed', 'success');
+        }
+    },
+    
+    deleteNote(projectId, noteId) {
+        if (!confirm('Are you sure you want to delete this note?')) return;
+
+        localStorage.removeItem(noteId);
+        UI.showToast('Note deleted', 'success');
+        
+        // Re-render notes grid
+        const grid = document.getElementById(`notesGrid-${projectId}`);
+        if (grid) {
+            grid.innerHTML = this.renderProjectNotes(projectId);
+        }
+    },
+    
+    deleteNoteAndGoBack(projectId, noteId) {
+        if (!confirm('Are you sure you want to delete this note?')) return;
+
+        localStorage.removeItem(noteId);
+        UI.showToast('Note deleted', 'success');
+        
+        // Go back to project detail
+        window.location.hash = `#projects/${projectId}`;
+    },
+    
+    toggleNotes(projectId) {
+        // Deprecated - kept for compatibility
+        // Notes are now always shown
     },
     
     // ========================================
@@ -457,6 +883,11 @@ const ProjectsView = {
                             </div>
                         </div>
                         <div class="form-group">
+                            <label>Tag</label>
+                            <input type="text" id="taskTag" class="form-input" placeholder="e.g., experiment, analysis, review">
+                            <small style="color: var(--text-secondary);">Use @tag in notes to link to this task</small>
+                        </div>
+                        <div class="form-group">
                             <label>Due Date</label>
                             <input type="date" id="taskDueDate" class="form-input">
                         </div>
@@ -486,6 +917,7 @@ const ProjectsView = {
             type: document.getElementById('taskType').value,
             priority: document.getElementById('taskPriority').value,
             status: 'todo',
+            tag: document.getElementById('taskTag').value.trim() || null,
             dueDate: document.getElementById('taskDueDate').value || null,
             notes: ''
         };
@@ -493,14 +925,227 @@ const ProjectsView = {
         DataStore.createTask(taskData);
         this.closeModal('taskModal');
         
-        // Refresh the page
-        App.navigate(`projects/${projectId}`);
+        // Re-render the project detail view to show the new task
+        const mainContent = document.getElementById('mainContent');
+        if (mainContent) {
+            mainContent.innerHTML = this.renderDetail(projectId);
+            this.init(); // Re-initialize event listeners
+        }
+        
         UI.showToast('Task added successfully!', 'success');
+    },
+    
+    editTaskInline(taskId, field, cell) {
+        const task = DataStore.getTasks().find(t => t.id === taskId);
+        if (!task) return;
+        
+        const currentValue = task[field] || '';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentValue;
+        input.className = 'inline-edit-input';
+        input.style.width = '100%';
+        input.style.padding = '0.25rem';
+        input.style.border = '1px solid var(--primary)';
+        input.style.borderRadius = '3px';
+        
+        cell.innerHTML = '';
+        cell.appendChild(input);
+        input.focus();
+        input.select();
+        
+        const saveValue = () => {
+            const newValue = input.value.trim();
+            DataStore.updateTask(taskId, { [field]: newValue });
+            
+            // Re-render the row
+            const row = cell.closest('tr');
+            const updatedTask = DataStore.getTasks().find(t => t.id === taskId);
+            if (row && updatedTask) {
+                row.outerHTML = this.renderTaskRow(updatedTask);
+            }
+            
+            UI.showToast('Task updated', 'success');
+        };
+        
+        input.addEventListener('blur', saveValue);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                input.blur();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                // Re-render without saving
+                const row = cell.closest('tr');
+                if (row) {
+                    row.outerHTML = this.renderTaskRow(task);
+                }
+            }
+        });
     },
     
     updateTaskField(taskId, field, value) {
         DataStore.updateTask(taskId, { [field]: value });
+        
+        // Update the select element's class to reflect the new value
+        const select = event.target;
+        if (field === 'status') {
+            select.className = `inline-select task-status-select task-status-${value}`;
+        } else if (field === 'type') {
+            select.className = `inline-select task-type-select task-type-${value}`;
+        }
+        
         UI.showToast('Task updated', 'success');
+    },
+    
+    filterTasksByType(projectId, type) {
+        const rows = document.querySelectorAll('[data-task-id]');
+        const tasks = DataStore.getTasks().filter(t => t.projectId === projectId);
+        
+        rows.forEach(row => {
+            const taskId = row.getAttribute('data-task-id');
+            const task = tasks.find(t => t.id === taskId);
+            
+            if (!task) return;
+            
+            if (type === '' || task.type === type) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    },
+    
+    filterTasksByStatus(projectId, status) {
+        const rows = document.querySelectorAll('[data-task-id]');
+        const tasks = DataStore.getTasks().filter(t => t.projectId === projectId);
+        
+        rows.forEach(row => {
+            const taskId = row.getAttribute('data-task-id');
+            const task = tasks.find(t => t.id === taskId);
+            
+            if (!task) return;
+            
+            if (status === '' || task.status === status) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    },
+    
+    filterPapersByStatus(projectId, status) {
+        const rows = document.querySelectorAll('[data-paper-id]');
+        const papers = DataStore.getPapers().filter(p => p.projectId === projectId);
+        
+        rows.forEach(row => {
+            const paperId = row.getAttribute('data-paper-id');
+            const paper = papers.find(p => p.id === paperId);
+            
+            if (!paper) return;
+            
+            if (status === '' || paper.status === status) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    },
+    
+    filterPapersByImportance(projectId, importance) {
+        const rows = document.querySelectorAll('[data-paper-id]');
+        const papers = DataStore.getPapers().filter(p => p.projectId === projectId);
+        
+        rows.forEach(row => {
+            const paperId = row.getAttribute('data-paper-id');
+            const paper = papers.find(p => p.id === paperId);
+            
+            if (!paper) return;
+            
+            if (importance === '' || paper.importance === importance) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    },
+    
+    openPaperNote(projectId, paperId, paperTitle) {
+        console.log('openPaperNote called with:', projectId, paperId, paperTitle);
+        window.location.hash = `#projects/${projectId}/paper-note/${paperId}`;
+    },
+    
+    renderPaperNoteEditor(projectId, paperId, paperTitle) {
+        console.log('renderPaperNoteEditor called with:', projectId, paperId, paperTitle);
+        const project = DataStore.getProject(projectId);
+        console.log('Found project:', project);
+        
+        if (!project) {
+            UI.showToast('Project not found', 'error');
+            window.location.hash = `#projects`;
+            return;
+        }
+        
+        const paper = DataStore.getPaper(paperId);
+        if (!paper) {
+            UI.showToast('Paper not found', 'error');
+            window.location.hash = `#projects/${projectId}`;
+            return;
+        }
+        
+        const noteId = `note_paper_${paperId}`;
+        
+        const mainContent = document.getElementById('mainContent');
+        const projectName = project.name || 'Project';
+        mainContent.innerHTML = `
+            <div class="view-header">
+                <button class="btn-text" id="backToProjectBtn">
+                    ← Back to ${projectName}
+                </button>
+                <h2>📝 Notes: ${paper.title || paperTitle || 'Paper'}</h2>
+            </div>
+
+            <div class="editor-container">
+                ${BlockEditor.renderEditor(noteId, projectId)}
+            </div>
+        `;
+
+        setTimeout(() => {
+            const backBtn = document.getElementById('backToProjectBtn');
+            if (backBtn) {
+                backBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    window.location.hash = `#projects/${projectId}`;
+                });
+            }
+            
+            BlockEditor.init(noteId, projectId);
+        }, 100);
+    },
+    
+    viewPaperPdf(paperId) {
+        const paper = DataStore.getPaper(paperId);
+        if (!paper || !paper.pdfData) {
+            UI.showToast('PDF not available', 'error');
+            return;
+        }
+        
+        // Open PDF in new window
+        const pdfWindow = window.open('', '_blank');
+        pdfWindow.document.write(`
+            <html>
+                <head>
+                    <title>${paper.title}</title>
+                    <style>
+                        body { margin: 0; }
+                        iframe { border: none; width: 100vw; height: 100vh; }
+                    </style>
+                </head>
+                <body>
+                    <iframe src="${paper.pdfData}" type="application/pdf"></iframe>
+                </body>
+            </html>
+        `);
     },
     
     showEditTaskModal(taskId) {
@@ -766,13 +1411,12 @@ const ProjectsView = {
                             </div>
                         </div>
                         <div class="form-group">
-                            <label>PDF Path (optional)</label>
-                            <input type="text" id="paperPdfPath" class="form-input" placeholder="assets/pdf/your-paper.pdf">
-                            <small class="text-secondary">Place PDF file in assets/pdf/ folder first</small>
-                        </div>
-                        <div class="form-group">
-                            <label>Notes</label>
-                            <textarea id="paperNotes" class="form-input" rows="3" placeholder="Why is this paper important for your research?"></textarea>
+                            <label>Upload PDF (optional)</label>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <input type="file" id="paperPdfFile" accept=".pdf" class="form-input" style="flex: 1;">
+                                <span id="pdfUploadStatus" class="text-sm text-secondary"></span>
+                            </div>
+                            <small class="text-secondary">Upload a PDF file to view directly in the app</small>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -793,6 +1437,8 @@ const ProjectsView = {
             return;
         }
         
+        const pdfFile = document.getElementById('paperPdfFile').files[0];
+        
         const paperData = {
             projectId: projectId,
             title: title,
@@ -800,16 +1446,41 @@ const ProjectsView = {
             journal: document.getElementById('paperJournal').value.trim(),
             year: parseInt(document.getElementById('paperYear').value),
             status: document.getElementById('paperStatus').value,
-            importance: document.getElementById('paperImportance').value,
-            pdfPath: document.getElementById('paperPdfPath').value.trim(),
-            notes: document.getElementById('paperNotes').value.trim()
+            importance: document.getElementById('paperImportance').value
         };
         
-        DataStore.createPaper(paperData);
-        this.closeModal('paperModal');
-        
-        App.navigate(`projects/${projectId}`);
-        UI.showToast('Paper added successfully!', 'success');
+        // Handle PDF upload if file selected
+        if (pdfFile) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const pdfData = e.target.result;
+                // Create paper first
+                const newPaper = DataStore.createPaper(paperData);
+                // Save PDF to IndexedDB
+                await PDFStorage.savePDF(newPaper.id, pdfData, pdfFile.name);
+                // Update paper with hasPDF flag
+                DataStore.updatePaper(newPaper.id, { hasPDF: true, pdfFileName: pdfFile.name });
+                
+                this.closeModal('paperModal');
+                // Refresh the project detail view
+                const mainContent = document.getElementById('mainContent');
+                mainContent.innerHTML = this.renderDetail(projectId);
+                this.init();
+                UI.showToast('Paper added with PDF permanently saved!', 'success');
+            };
+            reader.onerror = () => {
+                alert('Error reading PDF file');
+            };
+            reader.readAsDataURL(pdfFile);
+        } else {
+            DataStore.createPaper(paperData);
+            this.closeModal('paperModal');
+            // Refresh the project detail view
+            const mainContent = document.getElementById('mainContent');
+            mainContent.innerHTML = this.renderDetail(projectId);
+            this.init();
+            UI.showToast('Paper added successfully!', 'success');
+        }
     },
     
     updatePaperField(paperId, field, value) {

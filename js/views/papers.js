@@ -5,7 +5,7 @@ const PapersView = {
             <div class="page-header">
                 <h1 class="page-title">Papers & References</h1>
                 <div class="page-actions">
-                    <button class="btn btn-primary" onclick="alert('Upload PDF feature - place PDFs in assets/pdf/')">
+                    <button class="btn btn-primary" onclick="PapersView.showAddPaperModal()">
                         + Add Paper
                     </button>
                 </div>
@@ -101,17 +101,22 @@ const PapersView = {
             `}
             
             <div class="detail-section">
-                <h3 class="section-title">⚡ Create Task from This Paper</h3>
-                <p class="text-secondary">Derive action items directly from your reading</p>
-                <button class="btn btn-primary" onclick="PapersView.showCreateTaskFromPaperModal('${paper.id}')">+ Create Task</button>
+                <h3 class="section-title">📝 Notes</h3>
+                <div id="paperNotesEditor">
+                    ${BlockEditor.renderEditor(`note_paper_${paper.id}`, paper.projectId)}
+                </div>
             </div>
             
             <div class="detail-section">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3 class="section-title">PDF Viewer</h3>
-                    <button class="btn btn-sm btn-secondary" onclick="PDFViewer.openFullscreen('${paper.id}')">
-                        Open Fullscreen
-                    </button>
+                    <h3 class="section-title">📄 PDF Viewer</h3>
+                    ${paper.hasPDF || paper.pdfPath ? `
+                        <button class="btn btn-sm btn-secondary" id="openFullscreenBtn" data-paper-id="${paper.id}">
+                            Open Fullscreen
+                        </button>
+                    ` : `
+                        <span class="text-secondary text-sm">No PDF uploaded</span>
+                    `}
                 </div>
                 <div id="pdfViewerContainer"></div>
             </div>
@@ -247,7 +252,151 @@ const PapersView = {
         if (modal) modal.remove();
     },
     
+    showAddPaperModal() {
+        const projects = DataStore.getProjects();
+        const modal = `
+            <div class="modal active" id="addPaperModal">
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h3>Add New Paper</h3>
+                        <button class="modal-close" onclick="PapersView.closeModal('addPaperModal')">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Title *</label>
+                            <input type="text" id="paperTitle" class="form-input" placeholder="Paper title">
+                        </div>
+                        <div class="form-group">
+                            <label>Authors *</label>
+                            <input type="text" id="paperAuthors" class="form-input" placeholder="Author1, Author2, ...">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Journal/Venue</label>
+                                <input type="text" id="paperJournal" class="form-input" placeholder="Journal name">
+                            </div>
+                            <div class="form-group">
+                                <label>Year</label>
+                                <input type="number" id="paperYear" class="form-input" placeholder="2024" min="1900" max="2100">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Status</label>
+                                <select id="paperStatus" class="form-input">
+                                    <option value="to-read">To Read</option>
+                                    <option value="reading">Reading</option>
+                                    <option value="read">Read</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Importance</label>
+                                <select id="paperImportance" class="form-input">
+                                    <option value="low">Low</option>
+                                    <option value="medium" selected>Medium</option>
+                                    <option value="high">High</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Project</label>
+                            <select id="paperProject" class="form-input">
+                                <option value="">Select project...</option>
+                                ${projects.map(p => `<option value="${p.id}">${p.title}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Notes</label>
+                            <textarea id="paperNotes" class="form-input" rows="3" placeholder="Brief notes about this paper"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Upload PDF</label>
+                            <input type="file" id="paperPdfFile" class="form-input" accept=".pdf">
+                            <p class="text-sm text-secondary" style="margin-top: 0.5rem;">
+                                PDF will be saved to assets/pdf/ folder
+                            </p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="PapersView.closeModal('addPaperModal')">Cancel</button>
+                        <button class="btn btn-primary" onclick="PapersView.addPaper()">Add Paper</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modal);
+    },
+    
+    async addPaper() {
+        const title = document.getElementById('paperTitle').value.trim();
+        const authors = document.getElementById('paperAuthors').value.trim();
+        
+        if (!title || !authors) {
+            alert('Please enter title and authors');
+            return;
+        }
+        
+        const pdfFile = document.getElementById('paperPdfFile').files[0];
+        let pdfPath = null;
+        
+        if (pdfFile) {
+            // Generate safe filename
+            const safeFileName = title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.pdf';
+            pdfPath = `assets/pdf/${safeFileName}`;
+            
+            // Note: In a real application, you would upload the file to the server
+            // For now, we'll store the local file reference
+            UI.showToast('Note: PDF file should be manually copied to assets/pdf/', 'warning', 5000);
+        }
+        
+        const paperData = {
+            title: title,
+            authors: authors,
+            journal: document.getElementById('paperJournal').value.trim() || 'N/A',
+            year: parseInt(document.getElementById('paperYear').value) || new Date().getFullYear(),
+            status: document.getElementById('paperStatus').value,
+            importance: document.getElementById('paperImportance').value,
+            projectId: document.getElementById('paperProject').value || 'general',
+            notes: document.getElementById('paperNotes').value.trim(),
+            pdfPath: pdfPath,
+            hasPDF: !!pdfFile,
+            keyTakeaways: []
+        };
+        
+        const paper = DataStore.createPaper(paperData);
+        this.closeModal('addPaperModal');
+        
+        UI.showToast('Paper added successfully!', 'success');
+        App.navigate('papers');
+    },
+    
     init() {
-        this.renderTable();
+        // Check if we're on paper detail page
+        const hash = window.location.hash;
+        const match = hash.match(/#papers\/(.+)/);
+        
+        if (match) {
+            // We're on detail page - initialize BlockEditor for notes
+            const paperId = match[1];
+            const paper = DataStore.getPaper(paperId);
+            if (paper) {
+                setTimeout(() => {
+                    BlockEditor.init(`note_paper_${paperId}`, paper.projectId);
+                    
+                    // Setup Open Fullscreen button
+                    const fullscreenBtn = document.getElementById('openFullscreenBtn');
+                    if (fullscreenBtn) {
+                        fullscreenBtn.addEventListener('click', () => {
+                            const paperId = fullscreenBtn.getAttribute('data-paper-id');
+                            PDFViewer.openFullscreen(paperId);
+                        });
+                    }
+                }, 100);
+            }
+        } else {
+            // We're on list page
+            this.renderTable();
+        }
     }
 };

@@ -74,11 +74,47 @@ BlockEditor.insertLink = function() {
 };
 
 BlockEditor.showColorPicker = function() {
-    const colors = ['#000000', '#e03e3e', '#d9730d', '#dfab01', '#0f7b6c', '#0b6e99', '#6940a5', '#ad1a72'];
-    const color = prompt('Enter color (hex) or choose:\n' + colors.join(', '));
-    if (color) {
-        document.execCommand('foreColor', false, color);
-        this.saveNote();
+    const picker = document.getElementById(`colorPicker-${this.currentNoteId}`);
+    if (!picker) return;
+    
+    // Position picker below selection toolbar
+    const toolbar = document.getElementById(`selectionToolbar-${this.currentNoteId}`);
+    if (toolbar) {
+        const rect = toolbar.getBoundingClientRect();
+        picker.style.display = 'block';
+        picker.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+        picker.style.left = rect.left + 'px';
+    }
+    
+    // Setup click handlers for color swatches
+    const swatches = picker.querySelectorAll('.color-swatch');
+    swatches.forEach(swatch => {
+        swatch.onclick = (e) => {
+            e.stopPropagation();
+            const color = swatch.dataset.color;
+            document.execCommand('foreColor', false, color);
+            this.hideColorPicker();
+            this.hideSelectionToolbar();
+            this.saveNote();
+        };
+    });
+    
+    // Close on outside click
+    const closeHandler = (e) => {
+        if (!picker.contains(e.target)) {
+            this.hideColorPicker();
+            document.removeEventListener('click', closeHandler);
+        }
+    };
+    setTimeout(() => {
+        document.addEventListener('click', closeHandler);
+    }, 0);
+};
+
+BlockEditor.hideColorPicker = function() {
+    const picker = document.getElementById(`colorPicker-${this.currentNoteId}`);
+    if (picker) {
+        picker.style.display = 'none';
     }
 };
 

@@ -1,5 +1,5 @@
 // Main Application Controller
-const App = {
+window.App = {
     currentView: null,
     
     async init() {
@@ -35,9 +35,13 @@ const App = {
     
     handleRoute() {
         const hash = window.location.hash.slice(1) || 'dashboard';
-        const [page, id] = hash.split('/');
+        const parts = hash.split('/');
+        const page = parts[0];
+        const id = parts[1];
+        const subpage = parts[2];
+        const subId = parts[3];
         
-        console.log('Navigating to:', page, id);
+        console.log('Navigating to:', { page, id, subpage, subId });
         
         // Update sidebar active state
         Sidebar.setActive(page);
@@ -60,8 +64,24 @@ const App = {
                     break;
                     
                 case 'projects':
-                    if (id) {
+                    if (subpage === 'note' && id && subId) {
+                        // Project note: #projects/proj_1/note/note_project_proj_1_123
+                        ProjectsView.renderNoteEditor(id, subId);
+                    } else if (subpage === 'task-note' && id && subId) {
+                        // Task note: #projects/proj_1/task-note/task_1
+                        const task = DataStore.getTasks().find(t => t.id === subId);
+                        if (task) {
+                            ProjectsView.renderTaskNoteEditor(id, subId, task.title);
+                        }
+                    } else if (subpage === 'paper-note' && id && subId) {
+                        // Paper note: #projects/proj_1/paper-note/paper_1
+                        const paper = DataStore.getPaper(subId);
+                        if (paper) {
+                            ProjectsView.renderPaperNoteEditor(id, subId, paper.title);
+                        }
+                    } else if (id) {
                         mainContent.innerHTML = ProjectsView.renderDetail(id);
+                        ProjectsView.init();
                     } else {
                         mainContent.innerHTML = ProjectsView.render();
                         ProjectsView.init();
@@ -75,9 +95,15 @@ const App = {
                     
                 case 'papers':
                     if (id) {
+                        console.log('Loading paper detail for:', id);
                         mainContent.innerHTML = PapersView.renderDetail(id);
+                        PapersView.init();
                         // Load PDF viewer after DOM is ready
-                        setTimeout(() => PDFViewer.load(id), 100);
+                        console.log('Scheduling PDFViewer.load for paper:', id);
+                        setTimeout(() => {
+                            console.log('Calling PDFViewer.load now');
+                            PDFViewer.load(id);
+                        }, 100);
                     } else {
                         mainContent.innerHTML = PapersView.render();
                         PapersView.init();
@@ -114,5 +140,5 @@ const App = {
 
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    App.init();
+    window.App.init();
 });

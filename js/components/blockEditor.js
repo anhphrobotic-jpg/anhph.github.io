@@ -16,6 +16,9 @@ const BlockEditor = {
     maxHistorySize: 50,
     autoSaveTimer: null,
     commandMenuActive: false,
+    commandMenuBlockId: null,
+    commandMenuQuery: '',
+    menuKeyboardHandler: null,
     selectionToolbarVisible: false,
     draggedBlockId: null,
     dropIndicatorVisible: false,
@@ -86,7 +89,6 @@ const BlockEditor = {
                 
                 <div class="editor-footer">
                     <button class="btn-text" onclick="BlockEditor.addBlock('paragraph')">+ Add Block</button>
-                    <span class="footer-hint">Press '/' for commands</span>
                 </div>
                 
                 <!-- Selection Toolbar -->
@@ -98,6 +100,29 @@ const BlockEditor = {
                     <button class="toolbar-btn" onclick="BlockEditor.formatSelection('code')" title="Inline Code">&lt;/&gt;</button>
                     <button class="toolbar-btn" onclick="BlockEditor.insertLink()" title="Link">🔗</button>
                     <button class="toolbar-btn" onclick="BlockEditor.showColorPicker()" title="Color">🎨</button>
+                </div>
+                
+                <!-- Color Picker -->
+                <div class="color-picker-popup" id="colorPicker-${noteId}" style="display: none;">
+                    <div class="color-picker-header">Text Color</div>
+                    <div class="color-grid">
+                        <button class="color-swatch" data-color="#000000" style="background: #000000" title="Black"></button>
+                        <button class="color-swatch" data-color="#4d4d4d" style="background: #4d4d4d" title="Dark Gray"></button>
+                        <button class="color-swatch" data-color="#999999" style="background: #999999" title="Gray"></button>
+                        <button class="color-swatch" data-color="#ffffff" style="background: #ffffff; border: 1px solid #ddd" title="White"></button>
+                        <button class="color-swatch" data-color="#e03e3e" style="background: #e03e3e" title="Red"></button>
+                        <button class="color-swatch" data-color="#d9730d" style="background: #d9730d" title="Orange"></button>
+                        <button class="color-swatch" data-color="#dfab01" style="background: #dfab01" title="Yellow"></button>
+                        <button class="color-swatch" data-color="#4d6b2a" style="background: #4d6b2a" title="Green"></button>
+                        <button class="color-swatch" data-color="#0f7b6c" style="background: #0f7b6c" title="Teal"></button>
+                        <button class="color-swatch" data-color="#0b6e99" style="background: #0b6e99" title="Blue"></button>
+                        <button class="color-swatch" data-color="#6940a5" style="background: #6940a5" title="Purple"></button>
+                        <button class="color-swatch" data-color="#ad1a72" style="background: #ad1a72" title="Pink"></button>
+                        <button class="color-swatch" data-color="#ff6b6b" style="background: #ff6b6b" title="Light Red"></button>
+                        <button class="color-swatch" data-color="#ffa94d" style="background: #ffa94d" title="Light Orange"></button>
+                        <button class="color-swatch" data-color="#ffd43b" style="background: #ffd43b" title="Light Yellow"></button>
+                        <button class="color-swatch" data-color="#74c0fc" style="background: #74c0fc" title="Light Blue"></button>
+                    </div>
                 </div>
                 
                 <!-- Command Menu -->
@@ -436,7 +461,7 @@ const BlockEditor = {
                         <div 
                             class="block-content editable" 
                             contenteditable="true"
-                            data-placeholder="Type '/' for commands"
+                            data-placeholder=""
                             onkeydown="BlockEditor.handleKeyDown(event, '${blockId}')"
                             onkeyup="BlockEditor.handleKeyUp(event, '${blockId}')"
                             oninput="BlockEditor.updateBlockContent('${blockId}')"
@@ -471,6 +496,58 @@ const BlockEditor = {
             return;
         }
         
+        // If command menu is active, handle special keys FIRST
+        if (this.commandMenuActive && this.commandMenuBlockId === blockId) {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                event.stopPropagation();
+                // These will be handled by menu keyboard navigation
+                return;
+            }
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                this.hideCommandMenu();
+                // Clear the / character
+                element.textContent = '';
+                return;
+            }
+        }
+        
+        // If tag menu is active, handle special keys
+        if (this.tagMenuActive && this.tagMenuBlockId === blockId) {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                this.hideTagMenu();
+                return;
+            }
+        }
+        
+        // Slash command - show menu when typing /
+        if (event.key === '/' && content === '') {
+            // Don't prevent default - let the / character be typed
+            setTimeout(() => {
+                this.showCommandMenu(blockId);
+            }, 0);
+            return;
+        }
+        
         // Tab: Indent (for lists)
         if (event.key === 'Tab') {
             event.preventDefault();
@@ -491,13 +568,6 @@ const BlockEditor = {
         if (event.key === 'ArrowDown' && this.isAtEnd(element)) {
             event.preventDefault();
             this.focusNextBlock(blockId);
-            return;
-        }
-        
-        // Slash command
-        if (event.key === '/' && content === '') {
-            event.preventDefault();
-            this.showCommandMenu(blockId);
             return;
         }
         
@@ -553,6 +623,57 @@ const BlockEditor = {
     },
     
     handleKeyUp(event, blockId) {
+        const element = event.target;
+        const content = element.textContent || '';
+        
+        // Filter command menu if active (but not for navigation keys)
+        if (this.commandMenuActive && this.commandMenuBlockId === blockId) {
+            // Don't filter when using navigation keys
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Enter' || event.key === 'Escape') {
+                return;
+            }
+            
+            if (content.startsWith('/')) {
+                const query = content.substring(1).toLowerCase();
+                this.filterCommandMenu(query);
+            } else {
+                this.hideCommandMenu();
+            }
+        }
+        
+        // Handle tag menu
+        if (this.tagMenuActive && this.tagMenuBlockId === blockId) {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Enter' || event.key === 'Escape') {
+                return;
+            }
+            
+            // Find the @ position and extract search query
+            const atMatch = content.match(/@(\w*)$/);
+            if (atMatch) {
+                const query = atMatch[1].toLowerCase();
+                this.filterTagMenu(query);
+            } else {
+                this.hideTagMenu();
+            }
+        }
+        
+        // Check for @ to show tag menu (if not already active)
+        if (!this.tagMenuActive && !this.commandMenuActive) {
+            const atMatch = content.match(/@(\w*)$/);
+            if (atMatch) {
+                setTimeout(() => {
+                    if (!this.tagMenuActive) {
+                        this.showTagMenu(blockId);
+                    }
+                }, 0);
+            }
+        }
+        
+        // Check for @tag pattern and convert to link
+        if (event.key === ' ' || event.key === 'Enter') {
+            this.convertTagsToLinks(element);
+        }
+        
         // Check for markdown shortcuts
         this.checkMarkdownShortcuts(blockId);
         // Save history on content change
@@ -667,6 +788,9 @@ const BlockEditor = {
     
     showCommandMenu(blockId) {
         this.commandMenuActive = true;
+        this.commandMenuBlockId = blockId;
+        this.commandMenuQuery = '';
+        
         const menu = document.getElementById(`commandMenu-${this.currentNoteId}`);
         const blockElement = document.querySelector(`[data-block-id="${blockId}"]`);
         
@@ -678,8 +802,19 @@ const BlockEditor = {
         menu.style.top = (rect.bottom + window.scrollY) + 'px';
         menu.style.left = rect.left + 'px';
         
-        // Setup click handlers
+        // Show all items initially
         const items = menu.querySelectorAll('.command-item');
+        items.forEach(item => {
+            item.style.display = 'flex';
+            item.classList.remove('selected');
+        });
+        
+        // Select first visible item
+        if (items.length > 0) {
+            items[0].classList.add('selected');
+        }
+        
+        // Setup click handlers
         items.forEach(item => {
             item.onclick = () => {
                 const command = item.dataset.command;
@@ -689,44 +824,446 @@ const BlockEditor = {
         });
         
         // Setup keyboard navigation
-        let selectedIndex = 0;
-        items[selectedIndex].classList.add('selected');
+        this.setupMenuKeyboardNavigation();
+    },
+    
+    filterCommandMenu(query) {
+        this.commandMenuQuery = query;
+        const menu = document.getElementById(`commandMenu-${this.currentNoteId}`);
+        if (!menu) return;
         
-        const handleMenuKeyDown = (e) => {
+        const items = menu.querySelectorAll('.command-item');
+        let firstVisible = null;
+        
+        items.forEach(item => {
+            const command = item.dataset.command.toLowerCase();
+            const label = item.textContent.toLowerCase();
+            
+            // Check if query matches command name or label
+            const matches = command.includes(query) || label.includes(query);
+            
+            item.style.display = matches ? 'flex' : 'none';
+            item.classList.remove('selected');
+            
+            if (matches && !firstVisible) {
+                firstVisible = item;
+            }
+        });
+        
+        // Select first visible item
+        if (firstVisible) {
+            firstVisible.classList.add('selected');
+        }
+    },
+    
+    setupMenuKeyboardNavigation() {
+        // Remove old listener if exists
+        if (this.menuKeyboardHandler) {
+            document.removeEventListener('keydown', this.menuKeyboardHandler, true);
+        }
+        
+        const menu = document.getElementById(`commandMenu-${this.currentNoteId}`);
+        if (!menu) return;
+        
+        this.menuKeyboardHandler = (e) => {
+            if (!this.commandMenuActive) {
+                document.removeEventListener('keydown', this.menuKeyboardHandler, true);
+                this.menuKeyboardHandler = null;
+                return;
+            }
+            
+            // Only handle keys if menu is active
+            if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Enter' && e.key !== 'Escape') {
+                return;
+            }
+            
+            const visibleItems = Array.from(menu.querySelectorAll('.command-item'))
+                .filter(item => item.style.display !== 'none');
+            
+            if (visibleItems.length === 0) return;
+            
+            const currentIndex = visibleItems.findIndex(item => item.classList.contains('selected'));
+            
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
-                items[selectedIndex].classList.remove('selected');
-                selectedIndex = (selectedIndex + 1) % items.length;
-                items[selectedIndex].classList.add('selected');
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                if (currentIndex >= 0) {
+                    visibleItems[currentIndex].classList.remove('selected');
+                }
+                const nextIndex = (currentIndex + 1) % visibleItems.length;
+                visibleItems[nextIndex].classList.add('selected');
+                visibleItems[nextIndex].scrollIntoView({ block: 'nearest' });
             }
             else if (e.key === 'ArrowUp') {
                 e.preventDefault();
-                items[selectedIndex].classList.remove('selected');
-                selectedIndex = (selectedIndex - 1 + items.length) % items.length;
-                items[selectedIndex].classList.add('selected');
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                if (currentIndex >= 0) {
+                    visibleItems[currentIndex].classList.remove('selected');
+                }
+                const prevIndex = (currentIndex - 1 + visibleItems.length) % visibleItems.length;
+                visibleItems[prevIndex].classList.add('selected');
+                visibleItems[prevIndex].scrollIntoView({ block: 'nearest' });
             }
             else if (e.key === 'Enter') {
                 e.preventDefault();
-                items[selectedIndex].click();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                if (currentIndex >= 0) {
+                    visibleItems[currentIndex].click();
+                }
+                document.removeEventListener('keydown', this.menuKeyboardHandler, true);
+                this.menuKeyboardHandler = null;
             }
             else if (e.key === 'Escape') {
                 e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
                 this.hideCommandMenu();
+                document.removeEventListener('keydown', this.menuKeyboardHandler, true);
+                this.menuKeyboardHandler = null;
             }
         };
         
-        document.addEventListener('keydown', handleMenuKeyDown, { once: true });
+        // Use capture phase to catch events before other handlers
+        document.addEventListener('keydown', this.menuKeyboardHandler, true);
     },
     
     hideCommandMenu() {
         this.commandMenuActive = false;
+        this.commandMenuBlockId = null;
+        this.commandMenuQuery = '';
+        
+        // Remove keyboard handler
+        if (this.menuKeyboardHandler) {
+            document.removeEventListener('keydown', this.menuKeyboardHandler, true);
+            this.menuKeyboardHandler = null;
+        }
+        
         const menu = document.getElementById(`commandMenu-${this.currentNoteId}`);
+        if (menu) {
+            menu.style.display = 'none';
+            // Remove selected class from all items
+            menu.querySelectorAll('.command-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+        }
+    },
+    
+    // ========================================
+    // TAG MENU (@mention)
+    // ========================================
+    
+    showTagMenu(blockId) {
+        console.log('showTagMenu called for blockId:', blockId);
+        this.tagMenuActive = true;
+        this.tagMenuBlockId = blockId;
+        
+        // Get all tags from tasks
+        const tags = this.getAllTags();
+        console.log('Tags found:', tags);
+        
+        if (tags.length === 0) {
+            console.log('No tags available, menu will not show');
+            this.tagMenuActive = false;
+            return; // No tags to show
+        }
+        
+        const blockElement = document.querySelector(`[data-block-id="${blockId}"]`);
+        if (!blockElement) {
+            console.log('Block element not found');
+            return;
+        }
+        
+        // Create or get tag menu
+        let menu = document.getElementById(`tagMenu-${this.currentNoteId}`);
+        if (!menu) {
+            menu = document.createElement('div');
+            menu.id = `tagMenu-${this.currentNoteId}`;
+            menu.className = 'tag-menu';
+            document.body.appendChild(menu);
+            console.log('Created new tag menu element');
+        }
+        
+        // Populate menu with tags
+        menu.innerHTML = tags.map(tag => `
+            <div class="tag-menu-item" data-tag="${tag.tag}">
+                <span class="tag-icon">🏷️</span>
+                <div class="tag-info">
+                    <span class="tag-name">@${tag.tag}</span>
+                    <span class="tag-task">${tag.taskTitle}</span>
+                </div>
+            </div>
+        `).join('');
+        
+        // Position menu below the block
+        const rect = blockElement.getBoundingClientRect();
+        menu.style.display = 'block';
+        menu.style.top = (rect.bottom + window.scrollY) + 'px';
+        menu.style.left = rect.left + 'px';
+        console.log('Menu positioned at:', menu.style.top, menu.style.left);
+        
+        // Select first item
+        const items = menu.querySelectorAll('.tag-menu-item');
+        if (items.length > 0) {
+            items[0].classList.add('selected');
+        }
+        
+        // Setup click handlers
+        items.forEach(item => {
+            item.onclick = () => {
+                const tag = item.dataset.tag;
+                this.insertTag(tag, blockId);
+                this.hideTagMenu();
+            };
+        });
+        
+        // Setup keyboard navigation
+        this.setupTagMenuKeyboardNavigation();
+    },
+    
+    filterTagMenu(query) {
+        const menu = document.getElementById(`tagMenu-${this.currentNoteId}`);
+        if (!menu) return;
+        
+        const items = menu.querySelectorAll('.tag-menu-item');
+        let firstVisible = null;
+        
+        items.forEach(item => {
+            const tag = item.dataset.tag.toLowerCase();
+            const matches = tag.includes(query);
+            
+            item.style.display = matches ? 'flex' : 'none';
+            item.classList.remove('selected');
+            
+            if (matches && !firstVisible) {
+                firstVisible = item;
+            }
+        });
+        
+        // Select first visible item
+        if (firstVisible) {
+            firstVisible.classList.add('selected');
+        }
+    },
+    
+    setupTagMenuKeyboardNavigation() {
+        // Remove old listener if exists
+        if (this.tagMenuKeyboardHandler) {
+            document.removeEventListener('keydown', this.tagMenuKeyboardHandler, true);
+        }
+        
+        const menu = document.getElementById(`tagMenu-${this.currentNoteId}`);
+        if (!menu) return;
+        
+        this.tagMenuKeyboardHandler = (e) => {
+            if (!this.tagMenuActive) {
+                document.removeEventListener('keydown', this.tagMenuKeyboardHandler, true);
+                this.tagMenuKeyboardHandler = null;
+                return;
+            }
+            
+            if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Enter' && e.key !== 'Escape') {
+                return;
+            }
+            
+            const visibleItems = Array.from(menu.querySelectorAll('.tag-menu-item'))
+                .filter(item => item.style.display !== 'none');
+            
+            if (visibleItems.length === 0) return;
+            
+            const currentIndex = visibleItems.findIndex(item => item.classList.contains('selected'));
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                if (currentIndex >= 0) {
+                    visibleItems[currentIndex].classList.remove('selected');
+                }
+                const nextIndex = (currentIndex + 1) % visibleItems.length;
+                visibleItems[nextIndex].classList.add('selected');
+                visibleItems[nextIndex].scrollIntoView({ block: 'nearest' });
+            }
+            else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                if (currentIndex >= 0) {
+                    visibleItems[currentIndex].classList.remove('selected');
+                }
+                const prevIndex = (currentIndex - 1 + visibleItems.length) % visibleItems.length;
+                visibleItems[prevIndex].classList.add('selected');
+                visibleItems[prevIndex].scrollIntoView({ block: 'nearest' });
+            }
+            else if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                if (currentIndex >= 0) {
+                    visibleItems[currentIndex].click();
+                }
+                document.removeEventListener('keydown', this.tagMenuKeyboardHandler, true);
+                this.tagMenuKeyboardHandler = null;
+            }
+            else if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                this.hideTagMenu();
+                document.removeEventListener('keydown', this.tagMenuKeyboardHandler, true);
+                this.tagMenuKeyboardHandler = null;
+            }
+        };
+        
+        document.addEventListener('keydown', this.tagMenuKeyboardHandler, true);
+    },
+    
+    hideTagMenu() {
+        this.tagMenuActive = false;
+        this.tagMenuBlockId = null;
+        
+        if (this.tagMenuKeyboardHandler) {
+            document.removeEventListener('keydown', this.tagMenuKeyboardHandler, true);
+            this.tagMenuKeyboardHandler = null;
+        }
+        
+        const menu = document.getElementById(`tagMenu-${this.currentNoteId}`);
         if (menu) {
             menu.style.display = 'none';
         }
     },
     
+    getAllTags() {
+        console.log('getAllTags called');
+        
+        // Try to get tasks from DataStore first
+        let tasks = [];
+        if (typeof DataStore !== 'undefined' && DataStore.getTasks) {
+            tasks = DataStore.getTasks();
+            console.log('Got tasks from DataStore:', tasks);
+        } else {
+            // Fallback to localStorage
+            const tasksJson = localStorage.getItem('tasks');
+            console.log('localStorage tasks:', tasksJson);
+            
+            if (!tasksJson) {
+                console.log('No tasks in localStorage');
+                return [];
+            }
+            
+            try {
+                const data = JSON.parse(tasksJson);
+                tasks = data.tasks || [];
+                console.log('Parsed tasks from localStorage:', tasks);
+            } catch (e) {
+                console.error('Error parsing tasks for tags:', e);
+                return [];
+            }
+        }
+        
+        // Filter tasks with tags and return tag info
+        const tagsWithInfo = tasks
+            .filter(t => {
+                const hasTag = t.tag && t.tag.trim();
+                if (hasTag) {
+                    console.log('Found task with tag:', t.tag, t.title);
+                }
+                return hasTag;
+            })
+            .map(t => ({
+                tag: t.tag.trim(),
+                taskTitle: t.title,
+                taskId: t.id
+            }));
+        
+        console.log('Returning tags:', tagsWithInfo);
+        return tagsWithInfo;
+    },
+    
+    insertTag(tag, blockId) {
+        console.log('insertTag called with tag:', tag, 'blockId:', blockId);
+        const element = document.querySelector(`[data-block-id="${blockId}"] .block-content`);
+        if (!element) {
+            console.log('Element not found');
+            return;
+        }
+        
+        // Get current selection to find where the @ was typed
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+        
+        const range = selection.getRangeAt(0);
+        const textNode = range.startContainer;
+        
+        // Find the @ symbol before the cursor in the text node
+        if (textNode.nodeType === Node.TEXT_NODE) {
+            const textContent = textNode.textContent;
+            const cursorPos = range.startOffset;
+            const textBeforeCursor = textContent.substring(0, cursorPos);
+            const match = textBeforeCursor.match(/@\w*$/);
+            
+            if (match) {
+                const matchStart = cursorPos - match[0].length;
+                
+                // Create the tag link element
+                const tagLink = document.createElement('a');
+                tagLink.href = '#';
+                tagLink.className = 'tag-link';
+                tagLink.setAttribute('data-tag', tag);
+                
+                // Add click event listener
+                tagLink.addEventListener('click', (e) => {
+                    console.log('Tag link clicked:', tag);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    BlockEditor.navigateToTag(tag);
+                });
+                
+                tagLink.textContent = `@${tag}`;
+                
+                // Split the text node at the match position
+                const beforeText = textContent.substring(0, matchStart);
+                const afterText = textContent.substring(cursorPos);
+                
+                // Replace the text node with: beforeText + tagLink + space + afterText
+                const parent = textNode.parentNode;
+                const beforeNode = document.createTextNode(beforeText);
+                const spaceNode = document.createTextNode(' ');
+                const afterNode = document.createTextNode(afterText);
+                
+                parent.insertBefore(beforeNode, textNode);
+                parent.insertBefore(tagLink, textNode);
+                parent.insertBefore(spaceNode, textNode);
+                parent.insertBefore(afterNode, textNode);
+                parent.removeChild(textNode);
+                
+                // Place cursor after the space
+                const newRange = document.createRange();
+                newRange.setStartAfter(spaceNode);
+                newRange.setEndAfter(spaceNode);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+                
+                console.log('Tag inserted and converted to link');
+            }
+        }
+        
+        // Save the block
+        this.updateBlockContent(blockId);
+    },
+    
     executeCommand(command, blockId) {
+        // Clear the slash command text
+        const blockElement = document.querySelector(`[data-block-id="${blockId}"]`);
+        if (blockElement) {
+            const contentElement = blockElement.querySelector('[contenteditable]');
+            if (contentElement && contentElement.textContent.startsWith('/')) {
+                contentElement.textContent = '';
+            }
+        }
+        
         const typeMap = {
             'text': 'paragraph',
             'h1': 'h1',
@@ -913,7 +1450,8 @@ const BlockEditor = {
     },
     
     loadNote(noteId) {
-        const key = `note_${noteId}`;
+        // Use noteId directly if it already has 'note_' prefix, otherwise add it
+        const key = noteId.startsWith('note_') ? noteId : `note_${noteId}`;
         const data = localStorage.getItem(key);
         
         if (data) {
@@ -930,9 +1468,10 @@ const BlockEditor = {
         
         if (!note) return;
         
-        note.updatedAt = Date.now();
+        note.updatedAt = new Date().toISOString();
         
-        const key = `note_${note.id}`;
+        // Use note.id directly if it already has 'note_' prefix, otherwise add it
+        const key = note.id.startsWith('note_') ? note.id : `note_${note.id}`;
         localStorage.setItem(key, JSON.stringify(note));
         
         // Update last saved time
@@ -1233,13 +1772,135 @@ const BlockEditor = {
         this.saveNote(note, false);
     },
     
+    // ========================================
+    // TAG LINKS - @tag functionality
+    // ========================================
+    
+    convertTagsToLinks(element) {
+        if (!element) return;
+        
+        const html = element.innerHTML;
+        // Match @word patterns that aren't already inside <a> tags
+        const tagPattern = /(?<!<a[^>]*>)@(\w+)(?![^<]*<\/a>)/g;
+        
+        let newHtml = html;
+        let match;
+        const matches = [];
+        
+        // Find all @tag occurrences
+        while ((match = tagPattern.exec(html)) !== null) {
+            matches.push({ full: match[0], tag: match[1], index: match.index });
+        }
+        
+        // Replace from end to start to maintain indices
+        for (let i = matches.length - 1; i >= 0; i--) {
+            const m = matches[i];
+            const before = newHtml.substring(0, m.index);
+            const after = newHtml.substring(m.index + m.full.length);
+            newHtml = before + `<a href="#" class="tag-link" data-tag="${m.tag}" onclick="BlockEditor.navigateToTag('${m.tag}'); return false;">@${m.tag}</a>` + after;
+        }
+        
+        if (newHtml !== html) {
+            // Save cursor position
+            const selection = window.getSelection();
+            const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+            
+            element.innerHTML = newHtml;
+            
+            // Try to restore cursor
+            if (range) {
+                try {
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                } catch (e) {
+                    // If restoration fails, just place cursor at end
+                    this.setCursorToEnd(element);
+                }
+            }
+        }
+    },
+    
+    navigateToTag(tag) {
+        console.log('Navigating to tag:', tag);
+        
+        // Get tasks from DataStore first
+        let tasks = [];
+        if (typeof DataStore !== 'undefined' && DataStore.getTasks) {
+            tasks = DataStore.getTasks();
+            console.log('Got tasks from DataStore for navigation:', tasks);
+        } else {
+            // Fallback to localStorage
+            const tasksJson = localStorage.getItem('tasks');
+            if (!tasksJson) {
+                console.log('No tasks in localStorage');
+                UI.showToast('No tasks found', 'info');
+                return;
+            }
+            
+            try {
+                const data = JSON.parse(tasksJson);
+                tasks = data.tasks || [];
+                console.log('Got tasks from localStorage:', tasks);
+            } catch (e) {
+                console.error('Error parsing tasks:', e);
+                return;
+            }
+        }
+        
+        console.log('Searching for tag:', tag);
+        console.log('Available tasks:', tasks.map(t => ({ id: t.id, title: t.title, tag: t.tag })));
+        
+        // Find task with matching tag
+        const task = tasks.find(t => {
+            const hasMatch = t.tag && t.tag.toLowerCase().trim() === tag.toLowerCase().trim();
+            console.log(`Checking task ${t.id} (${t.title}): tag="${t.tag}" matches="${hasMatch}"`);
+            return hasMatch;
+        });
+        
+        if (!task) {
+            console.log('No task found with tag:', tag);
+            UI.showToast(`No task found with tag: @${tag}`, 'info');
+            return;
+        }
+        
+        console.log('Found task:', task);
+        
+        // Navigate to task note
+        if (typeof ProjectsView !== 'undefined' && ProjectsView.openTaskNote) {
+            ProjectsView.openTaskNote(task.projectId, task.id, task.title);
+            UI.showToast(`Opening note for: ${task.title}`, 'success');
+        } else {
+            console.error('ProjectsView.openTaskNote not available');
+        }
+    },
+    
     setupEventListeners() {
-        // Close command menu on outside click
+        // Handle tag link clicks using event delegation
         document.addEventListener('click', (e) => {
+            // Check if clicked element is a tag link or inside a tag link
+            const tagLink = e.target.closest('.tag-link');
+            if (tagLink && tagLink.hasAttribute('data-tag')) {
+                console.log('Tag link clicked via delegation:', tagLink.getAttribute('data-tag'));
+                e.preventDefault();
+                e.stopPropagation();
+                const tag = tagLink.getAttribute('data-tag');
+                this.navigateToTag(tag);
+                return;
+            }
+            
+            // Close command menu on outside click
             if (this.commandMenuActive) {
                 const menu = document.getElementById(`commandMenu-${this.currentNoteId}`);
                 if (menu && !menu.contains(e.target)) {
                     this.hideCommandMenu();
+                }
+            }
+            
+            // Close tag menu on outside click
+            if (this.tagMenuActive) {
+                const tagMenu = document.getElementById(`tagMenu-${this.currentNoteId}`);
+                if (tagMenu && !tagMenu.contains(e.target)) {
+                    this.hideTagMenu();
                 }
             }
         });

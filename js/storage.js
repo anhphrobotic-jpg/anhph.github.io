@@ -214,6 +214,8 @@ const DataStore = {
             journal: paperData.journal || '',
             year: paperData.year || new Date().getFullYear(),
             pdfPath: paperData.pdfPath || '',
+            pdfData: paperData.pdfData || null,
+            pdfFileName: paperData.pdfFileName || '',
             status: paperData.status || 'to-read',
             importance: paperData.importance || 'medium',
             notes: paperData.notes || '',
@@ -274,12 +276,22 @@ const DataStore = {
     },
     
     _persistPapers() {
-        localStorage.setItem('research_papers_data', JSON.stringify({
-            papers: this.data.papers,
-            lastUpdated: Date.now()
-        }));
+        // Clone papers array and remove large pdfData to avoid localStorage quota exceeded
+        const papersToSave = this.data.papers.map(paper => {
+            const { pdfData, ...paperWithoutPdfData } = paper;
+            return paperWithoutPdfData;
+        });
         
-        console.log('Papers persisted to localStorage');
+        try {
+            localStorage.setItem('research_papers_data', JSON.stringify({
+                papers: papersToSave,
+                lastUpdated: Date.now()
+            }));
+            console.log('Papers persisted to localStorage (without pdfData)');
+        } catch (error) {
+            console.error('Error persisting papers:', error);
+            UI.showToast('Warning: Cannot save papers to storage', 'warning');
+        }
     },
     
     // ========================================
