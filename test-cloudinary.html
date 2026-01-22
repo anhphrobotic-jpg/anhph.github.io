@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudinary Upload Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-card {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .info strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-area:hover {
+            border-color: #4285f4;
+            background: #f8f9fa;
+        }
+        .upload-area.dragging {
+            border-color: #4285f4;
+            background: #e3f2fd;
+        }
+        button {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #357ae8;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .progress {
+            width: 100%;
+            height: 30px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+            display: none;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4285f4, #34a853);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #28a745;
+        }
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #dc3545;
+        }
+        .result a {
+            color: #0066cc;
+            word-break: break-all;
+        }
+        .log {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin: 5px 0;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-card">
+        <h1>🌥️ Cloudinary Upload Test</h1>
+        
+        <div class="info">
+            <strong>Configuration:</strong>
+            Cloud Name: <code>dutk4od1w</code><br>
+            Upload Preset: <code>axmwdrjg</code><br>
+            API Key: <code>623583484799276</code>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+            <p style="font-size: 48px; margin: 0;">📄</p>
+            <p style="margin: 10px 0;"><strong>Click to select PDF</strong></p>
+            <p style="color: #666; font-size: 14px;">or drag and drop file here</p>
+            <input type="file" id="fileInput" accept=".pdf" style="display: none;">
+        </div>
+
+        <div class="progress" id="progressBar">
+            <div class="progress-bar" id="progressBarFill">0%</div>
+        </div>
+
+        <div class="result" id="result"></div>
+
+        <div class="log" id="log">
+            <div class="log-entry">Ready to upload...</div>
+        </div>
+    </div>
+
+    <script>
+        // Cloudinary Configuration (inline for testing)
+        const CloudinaryConfig = {
+            cloudName: 'dutk4od1w',
+            uploadPreset: 'axmwdrjg',
+            apiKey: '623583484799276'
+        };
+
+        // Cloudinary Storage Helper
+        const CloudinaryStorage = {
+            async uploadPDF(paperId, file, onProgress = null) {
+                console.log('Uploading to Cloudinary:', file.name);
+                
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('upload_preset', CloudinaryConfig.uploadPreset);
+                // Don't specify folder in form data, let preset handle it
+                formData.append('resource_type', 'auto'); // Let Cloudinary detect
+                
+                const xhr = new XMLHttpRequest();
+                const url = `https://api.cloudinary.com/v1_1/${CloudinaryConfig.cloudName}/auto/upload`;
+                
+                return new Promise((resolve, reject) => {
+                    xhr.upload.addEventListener('progress', (e) => {
+                        if (e.lengthComputable) {
+                            const progress = (e.loaded / e.total) * 100;
+                            console.log('Upload progress:', progress + '%');
+                            if (onProgress) {
+                                onProgress(progress);
+                            }
+                        }
+                    });
+                    
+                    xhr.addEventListener('load', () => {
+                        if (xhr.status === 200) {
+                            const response = JSON.parse(xhr.responseText);
+                            console.log('Cloudinary upload success:', response);
+                            
+                            // Use original secure_url without transformation for raw files
+                            const viewUrl = response.secure_url;
+                            
+                            console.log('View URL:', viewUrl);
+                            
+                            resolve({
+                                url: viewUrl,
+                                publicId: response.public_id,
+                                path: response.folder,
+                                name: file.name,
+                                size: file.size,
+                                cloudinaryData: response
+                            });
+                        } else {
+                            reject(new Error('Upload failed: ' + xhr.statusText));
+                        }
+                    });
+                    
+                    xhr.addEventListener('error', () => {
+                        reject(new Error('Network error during upload'));
+                    });
+                    
+                    xhr.addEventListener('abort', () => {
+                        reject(new Error('Upload cancelled'));
+                    });
+                    
+                    xhr.open('POST', url);
+                    xhr.send(formData);
+                });
+            }
+        };
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const progressBar = document.getElementById('progressBar');
+        const progressBarFill = document.getElementById('progressBarFill');
+        const result = document.getElementById('result');
+        const logDiv = document.getElementById('log');
+
+        function addLog(message) {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        // Click to upload
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragging');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragging');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragging');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        // File selection
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        async function handleFile(file) {
+            addLog(`Selected file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+
+            // Validate
+            if (!file.type.includes('pdf')) {
+                showResult(false, 'Please select a PDF file');
+                addLog('ERROR: Not a PDF file');
+                return;
+            }
+
+            if (file.size > 50 * 1024 * 1024) {
+                showResult(false, 'File too large (max 50MB)');
+                addLog('ERROR: File exceeds 50MB');
+                return;
+            }
+
+            // Show progress
+            progressBar.style.display = 'block';
+            result.style.display = 'none';
+            progressBarFill.style.width = '0%';
+            progressBarFill.textContent = '0%';
+            uploadArea.style.pointerEvents = 'none';
+            uploadArea.style.opacity = '0.5';
+
+            addLog('Starting upload to Cloudinary...');
+
+            try {
+                const testId = 'test_' + Date.now();
+                
+                addLog(`Upload ID: ${testId}`);
+
+                const uploadResult = await CloudinaryStorage.uploadPDF(
+                    testId,
+                    file,
+                    (progress) => {
+                        progressBarFill.style.width = progress + '%';
+                        progressBarFill.textContent = Math.round(progress) + '%';
+                        addLog(`Progress: ${Math.round(progress)}%`);
+                    }
+                );
+
+                addLog('Upload complete!');
+                addLog(`URL: ${uploadResult.url}`);
+                addLog(`Public ID: ${uploadResult.publicId}`);
+
+                showResult(true, `
+                    <strong>✓ Upload Successful!</strong><br><br>
+                    <strong>URL:</strong><br>
+                    <a href="${uploadResult.url}" target="_blank">${uploadResult.url}</a><br><br>
+                    <strong>Public ID:</strong> ${uploadResult.publicId}<br>
+                    <strong>Size:</strong> ${(uploadResult.size / 1024 / 1024).toFixed(2)} MB<br><br>
+                    <button onclick="window.open('${uploadResult.url}', '_blank')" style="margin-top: 10px;">
+                        Open PDF in New Tab
+                    </button>
+                `);
+
+            } catch (error) {
+                addLog(`ERROR: ${error.message}`);
+                showResult(false, `Upload failed: ${error.message}`);
+            } finally {
+                progressBar.style.display = 'none';
+                uploadArea.style.pointerEvents = 'auto';
+                uploadArea.style.opacity = '1';
+            }
+        }
+
+        function showResult(success, message) {
+            result.style.display = 'block';
+            result.className = 'result ' + (success ? 'success' : 'error');
+            result.innerHTML = message;
+        }
+
+        // Check if Cloudinary config is loaded
+        if (typeof CloudinaryStorage === 'undefined') {
+            showResult(false, 'Cloudinary configuration not loaded. Check js/cloudinaryConfig.js');
+            addLog('ERROR: CloudinaryStorage not found');
+        } else {
+            addLog('CloudinaryStorage loaded successfully');
+        }
+    </script>
+</body>
+</html>

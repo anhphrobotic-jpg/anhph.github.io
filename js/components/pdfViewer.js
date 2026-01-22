@@ -68,14 +68,17 @@ const PDFViewer = {
         console.log('pdfjsLib available:', typeof pdfjsLib !== 'undefined');
         
         // Check if paper has PDF in IndexedDB
-        let pdfSource = paper.pdfPath;
+        let pdfSource = null;
         if (paper.hasPDF) {
             console.log('Loading PDF from IndexedDB...');
-            const pdfRecord = await PDFStorage.getPDF(paperId);
+            const pdfRecord = await PDFStorage.getPDF(paper.pdfPath || paperId);
             if (pdfRecord && pdfRecord.pdfData) {
                 pdfSource = pdfRecord.pdfData;
-                console.log('PDF loaded from IndexedDB, length:', pdfSource.length);
+                console.log('PDF loaded from IndexedDB, length:', pdfSource.byteLength);
             }
+        } else if (paper.pdfPath && !paper.hasPDF) {
+            // Legacy: try loading from file path
+            pdfSource = paper.pdfPath;
         }
         
         try {
@@ -331,14 +334,52 @@ const PDFViewer = {
         }
     },
     
-    openFullscreen(paperId) {
+    async openFullscreen(paperId) {
         const paper = DataStore.getPaper(paperId);
-        if (!paper || !paper.pdfPath) {
+        console.log('Opening PDF for paper:', paperId);
+        console.log('Paper data:', paper);
+        console.log('Has pdfUrl:', paper?.pdfUrl);
+        console.log('Has hasPDF:', paper?.hasPDF);
+        
+        if (!paper || !paper.hasPDF) {
             UI.showToast('PDF not available', 'error');
             return;
         }
         
-        // Open PDF in browser's native PDF viewer
-        window.open(paper.pdfPath, '_blank');
+        try {
+            // If paper has Cloudinary URL, open it directly
+            if (paper.pdfUrl) {
+                console.log('Opening Cloudinary URL:', paper.pdfUrl);
+                window.open(paper.pdfUrl, '_blank');
+                return;
+            }
+            
+            console.log('No pdfUrl found, trying IndexedDB...');
+            
+            // Otherwise, try IndexedDB fallback
+            const pdfRecord = await PDFStorage.getPDF(paper.pdfPath || paperId);
+            
+            if (!pdfRecord || !pdfRecord.pdfData) {
+                UI.showToast('PDF data not found', 'error');
+                return;
+            }
+            
+            // Create blob from ArrayBuffer
+            const blob = new Blob([pdfRecord.pdfData], { type: 'application/pdf' });
+            const blobUrl = URL.createObjectURL(blob);
+            
+            // Open PDF in new tab
+            const pdfWindow = window.open(blobUrl, '_blank');
+            
+            // Clean up blob URL after window loads
+            if (pdfWindow) {
+                pdfWindow.onload = () => {
+                    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+                };
+            }
+        } catch (error) {
+            console.error('Error opening PDF:', error);
+            UI.showToast('Failed to open PDF: ' + error.message, 'error');
+        }
     }
 };

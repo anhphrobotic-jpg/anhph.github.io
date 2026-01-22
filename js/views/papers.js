@@ -313,7 +313,7 @@ const PapersView = {
                             <label>Upload PDF</label>
                             <input type="file" id="paperPdfFile" class="form-input" accept=".pdf">
                             <p class="text-sm text-secondary" style="margin-top: 0.5rem;">
-                                PDF will be saved to assets/pdf/ folder
+                                PDF will be stored in your browser (max 50MB)
                             </p>
                         </div>
                     </div>
@@ -329,6 +329,9 @@ const PapersView = {
     },
     
     async addPaper() {
+        console.log('=== ADD PAPER CALLED ===');
+        console.log('CloudinaryStorage:', typeof CloudinaryStorage);
+        
         const title = document.getElementById('paperTitle').value.trim();
         const authors = document.getElementById('paperAuthors').value.trim();
         
@@ -338,16 +341,71 @@ const PapersView = {
         }
         
         const pdfFile = document.getElementById('paperPdfFile').files[0];
+        let pdfUrl = null;
         let pdfPath = null;
+        let hasPDF = false;
+        
+        // Show loading state
+        const addButton = document.querySelector('#addPaperModal .btn-primary');
+        const originalText = addButton.textContent;
+        addButton.textContent = 'Uploading...';
+        addButton.disabled = true;
         
         if (pdfFile) {
-            // Generate safe filename
-            const safeFileName = title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.pdf';
-            pdfPath = `assets/pdf/${safeFileName}`;
+            // Check file type
+            if (pdfFile.type !== 'application/pdf') {
+                alert('Please select a PDF file');
+                addButton.textContent = originalText;
+                addButton.disabled = false;
+                return;
+            }
             
-            // Note: In a real application, you would upload the file to the server
-            // For now, we'll store the local file reference
-            UI.showToast('Note: PDF file should be manually copied to assets/pdf/', 'warning', 5000);
+            // Check file size (max 50MB)
+            if (pdfFile.size > 50 * 1024 * 1024) {
+                alert('PDF file is too large. Maximum size is 50MB');
+                addButton.textContent = originalText;
+                addButton.disabled = false;
+                return;
+            }
+            
+            console.log('PDF file selected:', pdfFile.name);
+            console.log('CloudinaryStorage available:', typeof CloudinaryStorage !== 'undefined');
+            
+            try {
+                // Create temporary paper ID
+                const tempPaperId = 'paper_' + Date.now();
+                
+                // Try Cloudinary Storage first
+                if (typeof CloudinaryStorage !== 'undefined') {
+                    // Upload to Cloudinary with progress
+                    const result = await CloudinaryStorage.uploadPDF(
+                        tempPaperId, 
+                        pdfFile,
+                        (progress) => {
+                            addButton.textContent = `Uploading ${Math.round(progress)}%...`;
+                        }
+                    );
+                    
+                    pdfUrl = result.url;
+                    pdfPath = result.publicId;
+                    hasPDF = true;
+                    
+                    UI.showToast('PDF uploaded to Cloudinary!', 'success');
+                } else {
+                    // Fallback to IndexedDB
+                    const arrayBuffer = await this.readFileAsArrayBuffer(pdfFile);
+                    await PDFStorage.savePDF(tempPaperId, arrayBuffer, pdfFile.name);
+                    pdfPath = tempPaperId;
+                    hasPDF = true;
+                    UI.showToast('PDF saved locally', 'warning');
+                }
+            } catch (error) {
+                console.error('Error uploading PDF:', error);
+                UI.showToast('Failed to upload PDF: ' + error.message, 'error');
+                addButton.textContent = originalText;
+                addButton.disabled = false;
+                return;
+            }
         }
         
         const paperData = {
@@ -359,16 +417,38 @@ const PapersView = {
             importance: document.getElementById('paperImportance').value,
             projectId: document.getElementById('paperProject').value || 'general',
             notes: document.getElementById('paperNotes').value.trim(),
+            pdfUrl: pdfUrl,
             pdfPath: pdfPath,
-            hasPDF: !!pdfFile,
+            hasPDF: hasPDF,
             keyTakeaways: []
         };
         
         const paper = DataStore.createPaper(paperData);
+        
+        // Cloudinary URLs are already correct, no need to update
+        // For IndexedDB fallback, migrate to actual paper ID
+        if (hasPDF && !pdfUrl && pdfPath) {
+            const pdfRecord = await PDFStorage.getPDF(pdfPath);
+            if (pdfRecord) {
+                await PDFStorage.deletePDF(pdfPath);
+                await PDFStorage.savePDF(paper.id, pdfRecord.pdfData, pdfRecord.fileName);
+                DataStore.updatePaper(paper.id, { pdfPath: paper.id });
+            }
+        }
+        
         this.closeModal('addPaperModal');
         
         UI.showToast('Paper added successfully!', 'success');
         App.navigate('papers');
+    },
+    
+    readFileAsArrayBuffer(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = (e) => reject(new Error('Failed to read file'));
+            reader.readAsArrayBuffer(file);
+        });
     },
     
     init() {

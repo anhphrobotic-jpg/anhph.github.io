@@ -1430,7 +1430,7 @@ const ProjectsView = {
         document.body.insertAdjacentHTML('beforeend', modal);
     },
     
-    addPaper(projectId) {
+    async addPaper(projectId) {
         const title = document.getElementById('paperTitle').value.trim();
         if (!title) {
             alert('Please enter a paper title');
@@ -1451,31 +1451,54 @@ const ProjectsView = {
         
         // Handle PDF upload if file selected
         if (pdfFile) {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const pdfData = e.target.result;
-                // Create paper first
-                const newPaper = DataStore.createPaper(paperData);
-                // Save PDF to IndexedDB
-                await PDFStorage.savePDF(newPaper.id, pdfData, pdfFile.name);
-                // Update paper with hasPDF flag
-                DataStore.updatePaper(newPaper.id, { hasPDF: true, pdfFileName: pdfFile.name });
-                
-                this.closeModal('paperModal');
-                // Refresh the project detail view
-                const mainContent = document.getElementById('mainContent');
-                mainContent.innerHTML = this.renderDetail(projectId);
-                this.init();
-                UI.showToast('Paper added with PDF permanently saved!', 'success');
-            };
-            reader.onerror = () => {
-                alert('Error reading PDF file');
-            };
-            reader.readAsDataURL(pdfFile);
+            try {
+                // Try Cloudinary first
+                if (typeof CloudinaryStorage !== 'undefined') {
+                    // Create paper first to get proper ID
+                    const newPaper = DataStore.createPaper(paperData);
+                    
+                    // Upload PDF with the paper's ID
+                    const result = await CloudinaryStorage.uploadPDF(newPaper.id, pdfFile);
+                    
+                    // Update paper with PDF info
+                    DataStore.updatePaper(newPaper.id, {
+                        pdfUrl: result.url,
+                        pdfPath: result.publicId,
+                        hasPDF: true
+                    });
+                    
+                    this.closeModal('paperModal');
+                    const mainContent = document.getElementById('mainContent');
+                    mainContent.innerHTML = this.renderDetail(projectId);
+                    this.init();
+                    UI.showToast('Paper added with PDF uploaded to Cloudinary!', 'success');
+                } else {
+                    // Fallback to IndexedDB
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        const pdfData = e.target.result;
+                        const newPaper = DataStore.createPaper(paperData);
+                        await PDFStorage.savePDF(newPaper.id, pdfData, pdfFile.name);
+                        DataStore.updatePaper(newPaper.id, { hasPDF: true, pdfPath: newPaper.id });
+                        
+                        this.closeModal('paperModal');
+                        const mainContent = document.getElementById('mainContent');
+                        mainContent.innerHTML = this.renderDetail(projectId);
+                        this.init();
+                        UI.showToast('Paper added with PDF saved locally!', 'success');
+                    };
+                    reader.onerror = () => {
+                        alert('Error reading PDF file');
+                    };
+                    reader.readAsArrayBuffer(pdfFile);
+                }
+            } catch (error) {
+                console.error('Error uploading PDF:', error);
+                alert('Failed to upload PDF: ' + error.message);
+            }
         } else {
             DataStore.createPaper(paperData);
             this.closeModal('paperModal');
-            // Refresh the project detail view
             const mainContent = document.getElementById('mainContent');
             mainContent.innerHTML = this.renderDetail(projectId);
             this.init();
