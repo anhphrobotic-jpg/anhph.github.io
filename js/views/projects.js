@@ -17,7 +17,7 @@ const ProjectsView = {
             <div class="page-header">
                 <h1 class="page-title">Research Projects</h1>
                 <div class="page-actions">
-                    <button class="btn btn-primary" onclick="alert('Create project feature coming soon')">+ New Project</button>
+                    <button class="btn btn-primary" onclick="ProjectsView.showCreateProjectModal()">+ New Project</button>
                 </div>
             </div>
             <div class="database-table">
@@ -104,7 +104,12 @@ const ProjectsView = {
     renderProjectHeader(project) {
         return `
             <div class="project-header">
-                <button class="btn btn-secondary btn-sm" onclick="App.navigate('projects')">← Back to Projects</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <button class="btn btn-secondary btn-sm" onclick="App.navigate('projects')">← Back to Projects</button>
+                    <button class="btn btn-danger btn-sm" onclick="ProjectsView.deleteProject('${project.id}')" title="Delete Project">
+                        🗑️ Delete
+                    </button>
+                </div>
                 
                 <div class="project-title-row">
                     <h1 class="project-title">${project.title}</h1>
@@ -1682,5 +1687,123 @@ const ProjectsView = {
     init() {
         this.searchTerm = '';
         this.renderTable();
+    },
+    
+    // ========================================
+    // CREATE & DELETE PROJECT
+    // ========================================
+    
+    showCreateProjectModal() {
+        const html = `
+            <div class="modal-overlay" id="createProjectModal">
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h2>🎯 Create New Project</h2>
+                        <button class="close-btn" onclick="document.getElementById('createProjectModal').remove()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="createProjectForm" onsubmit="ProjectsView.handleCreateProject(event)">
+                            <div class="form-group">
+                                <label>Project Title *</label>
+                                <input type="text" id="projectTitle" class="form-input" required placeholder="e.g., Machine Learning Research">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea id="projectDescription" class="form-input" rows="3" placeholder="Brief description of the project..."></textarea>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Stage</label>
+                                    <select id="projectStage" class="form-input">
+                                        <option value="planning">Planning</option>
+                                        <option value="in-progress" selected>In Progress</option>
+                                        <option value="done">Done</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Progress (%)</label>
+                                    <input type="number" id="projectProgress" class="form-input" min="0" max="100" value="0">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Tags (comma separated)</label>
+                                <input type="text" id="projectTags" class="form-input" placeholder="e.g., AI, Research, NLP">
+                            </div>
+                            
+                            <div class="modal-actions">
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('createProjectModal').remove()">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Create Project</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', html);
+        
+        // Close on overlay click
+        document.getElementById('createProjectModal').addEventListener('click', (e) => {
+            if (e.target.id === 'createProjectModal') {
+                e.target.remove();
+            }
+        });
+        
+        // Focus title input
+        document.getElementById('projectTitle').focus();
+    },
+    
+    handleCreateProject(event) {
+        event.preventDefault();
+        
+        const title = document.getElementById('projectTitle').value.trim();
+        const description = document.getElementById('projectDescription').value.trim();
+        const stage = document.getElementById('projectStage').value;
+        const progress = parseInt(document.getElementById('projectProgress').value) || 0;
+        const tagsStr = document.getElementById('projectTags').value.trim();
+        const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(t => t) : [];
+        
+        if (!title) {
+            UI.showToast('Please enter a project title', 'warning');
+            return;
+        }
+        
+        const newProject = DataStore.createProject({
+            title,
+            description,
+            stage,
+            progress,
+            tags
+        });
+        
+        if (newProject) {
+            UI.showToast('✓ Project created successfully!', 'success');
+            document.getElementById('createProjectModal').remove();
+            
+            // Navigate to the new project
+            App.navigate(`projects/${newProject.id}`);
+        } else {
+            UI.showToast('Failed to create project', 'error');
+        }
+    },
+    
+    deleteProject(projectId) {
+        const project = DataStore.getProject(projectId);
+        if (!project) return;
+        
+        if (!confirm(`Delete project "${project.title}"? This will also delete all related tasks, papers, and whiteboards.`)) {
+            return;
+        }
+        
+        if (DataStore.deleteProject(projectId)) {
+            UI.showToast('✓ Project deleted', 'success');
+            App.navigate('projects');
+        } else {
+            UI.showToast('Failed to delete project', 'error');
+        }
     }
 };

@@ -64,9 +64,6 @@
                 <button class="import-btn" id="importData" title="Import data">
                     📤 Import
                 </button>
-                <button class="backup-btn" id="backupBtn" title="Cloudinary Backup">
-                    ☁️ Backup
-                </button>
             </div>
         </aside>
 
@@ -120,5 +117,18 @@
     
     <!-- Main App (must load last) -->
     <script src="js/app.js"></script>
+    
+    <!-- Initialize App -->
+    <script>
+        // Initialize app when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                App.init();
+            });
+        } else {
+            // DOM already loaded
+            App.init();
+        }
+    </script>
 </body>
 </html>

@@ -204,9 +204,6 @@ const DataStore = {
         }));
         
         console.log('Tasks persisted to localStorage');
-        
-        // Auto-backup to Cloudinary (debounced)
-        this._triggerAutoBackup();
     },
     
     // ========================================
@@ -296,9 +293,6 @@ const DataStore = {
                 lastUpdated: Date.now()
             }));
             console.log('Papers persisted to localStorage (without pdfData)');
-            
-            // Auto-backup to Cloudinary (debounced)
-            this._triggerAutoBackup();
         } catch (error) {
             console.error('Error persisting papers:', error);
             UI.showToast('Warning: Cannot save papers to storage', 'warning');
@@ -308,6 +302,25 @@ const DataStore = {
     // ========================================
     // CRUD OPERATIONS - PROJECTS
     // ========================================
+    
+    createProject(projectData) {
+        const newProject = {
+            id: `proj_${Date.now()}`,
+            title: projectData.title || 'Untitled Project',
+            description: projectData.description || '',
+            stage: projectData.stage || 'planning',
+            progress: projectData.progress || 0,
+            startDate: projectData.startDate || Date.now(),
+            endDate: projectData.endDate || null,
+            tags: projectData.tags || [],
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        };
+        
+        this.data.projects.push(newProject);
+        this._persistProjects();
+        return newProject;
+    },
     
     updateProject(projectId, updates) {
         const project = this.data.projects.find(p => p.id === projectId);
@@ -329,6 +342,32 @@ const DataStore = {
         return project;
     },
     
+    deleteProject(projectId) {
+        const index = this.data.projects.findIndex(p => p.id === projectId);
+        if (index === -1) {
+            console.error('Project not found:', projectId);
+            return false;
+        }
+        
+        // Delete project
+        this.data.projects.splice(index, 1);
+        
+        // Delete related tasks
+        this.data.tasks = this.data.tasks.filter(t => t.projectId !== projectId);
+        this._persistTasks();
+        
+        // Delete related papers
+        this.data.papers = this.data.papers.filter(p => p.projectId !== projectId);
+        this._persistPapers();
+        
+        // Delete related whiteboards
+        this.data.whiteboards = this.data.whiteboards.filter(w => w.projectId !== projectId);
+        this._persistWhiteboards();
+        
+        this._persistProjects();
+        return true;
+    },
+    
     _persistProjects() {
         localStorage.setItem('research_projects_data', JSON.stringify({
             projects: this.data.projects,
@@ -336,9 +375,6 @@ const DataStore = {
         }));
         
         console.log('Projects persisted to localStorage');
-        
-        // Auto-backup to Cloudinary (debounced)
-        this._triggerAutoBackup();
     },
     
     // ========================================
@@ -459,138 +495,6 @@ const DataStore = {
         }));
         
         console.log('Whiteboards persisted to localStorage');
-        
-        // Auto-backup to Cloudinary (debounced)
-        this._triggerAutoBackup();
-    },
-    
-    // Debounced auto-backup trigger
-    _backupTimer: null,
-    _triggerAutoBackup() {
-        // Clear existing timer
-        if (this._backupTimer) {
-            clearTimeout(this._backupTimer);
-        }
-        
-        // Set new timer - backup after 10 seconds of no changes
-        this._backupTimer = setTimeout(async () => {
-            try {
-                console.log('🔄 Auto-backing up to Cloudinary...');
-                if (window.App && typeof window.App.showSaveIndicator === 'function') {
-                    window.App.showSaveIndicator('saving');
-                }
-                
-                await this.backupToCloudinary();
-                
-                if (window.App && typeof window.App.showSaveIndicator === 'function') {
-                    window.App.showSaveIndicator('saved');
-                }
-                console.log('✓ Auto-backup complete');
-            } catch (error) {
-                console.error('Auto-backup failed:', error);
-                if (window.App && typeof window.App.showSaveIndicator === 'function') {
-                    window.App.showSaveIndicator('error');
-                }
-            }
-        }, 10000); // 10 seconds debounce
-    },
-    
-    // ========================================
-    // CLOUDINARY BACKUP
-    // ========================================
-    
-    async backupToCloudinary() {
-        try {
-            const allData = Storage.exportAllData();
-            const dataBlob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' });
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const file = new File([dataBlob], `research-workspace-backup-${timestamp}.json`, { type: 'application/json' });
-            
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('upload_preset', 'axmwdrjg');
-            formData.append('resource_type', 'raw');
-            formData.append('folder', 'research-workspace-backups');
-            
-            const response = await fetch(`https://api.cloudinary.com/v1_1/dutk4od1w/raw/upload`, {
-                method: 'POST',
-                body: formData
-            });
-            
-            if (!response.ok) {
-                throw new Error('Cloudinary backup failed');
-            }
-            
-            const result = await response.json();
-            
-            // Save backup info to localStorage
-            const backups = JSON.parse(localStorage.getItem('research_cloudinary_backups') || '[]');
-            backups.push({
-                url: result.secure_url,
-                publicId: result.public_id,
-                timestamp: Date.now(),
-                size: result.bytes
-            });
-            
-            // Keep only last 10 backups info
-            if (backups.length > 10) {
-                backups.splice(0, backups.length - 10);
-            }
-            
-            localStorage.setItem('research_cloudinary_backups', JSON.stringify(backups));
-            
-            console.log('✓ Data backed up to Cloudinary:', result.secure_url);
-            return result;
-        } catch (error) {
-            console.error('Failed to backup to Cloudinary:', error);
-            throw error;
-        }
-    },
-    
-    async restoreFromCloudinary(backupUrl) {
-        try {
-            const response = await fetch(backupUrl);
-            if (!response.ok) {
-                throw new Error('Failed to fetch backup');
-            }
-            
-            const backupData = await response.json();
-            
-            // Restore data
-            if (backupData.projects) {
-                this.data.projects = backupData.projects;
-                this._persistProjects();
-            }
-            
-            if (backupData.tasks) {
-                this.data.tasks = backupData.tasks;
-                this._persistTasks();
-            }
-            
-            if (backupData.papers) {
-                this.data.papers = backupData.papers;
-                this._persistPapers();
-            }
-            
-            if (backupData.whiteboards) {
-                this.data.whiteboards = backupData.whiteboards;
-                this._persistWhiteboards();
-            }
-            
-            if (backupData.annotations) {
-                localStorage.setItem(Storage.KEYS.ANNOTATIONS, backupData.annotations);
-            }
-            
-            console.log('✓ Data restored from Cloudinary backup');
-            return true;
-        } catch (error) {
-            console.error('Failed to restore from Cloudinary:', error);
-            throw error;
-        }
-    },
-    
-    getCloudinaryBackups() {
-        return JSON.parse(localStorage.getItem('research_cloudinary_backups') || '[]');
     }
 };
 
