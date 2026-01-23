@@ -1,0 +1,121 @@
+{
+  "papers": [
+    {
+      "id": "paper_1",
+      "projectId": "proj_1",
+      "title": "Deep Residual Learning for Image Recognition",
+      "authors": "He, K., Zhang, X., Ren, S., Sun, J.",
+      "journal": "CVPR 2016",
+      "year": 2016,
+      "pdfPath": "assets/pdf/resnet.pdf",
+      "status": "read",
+      "importance": "critical",
+      "notes": "Foundational paper on ResNet architecture. Key insight: skip connections enable training very deep networks by solving vanishing gradient problem",
+      "keyTakeaways": [
+        "Skip connections (identity mappings) solve vanishing gradient in deep networks",
+        "Residual learning: easier to optimize perturbations than direct mappings",
+        "Enables training 100+ layer networks - won ImageNet 2015",
+        "Batch normalization after each convolution is critical"
+      ],
+      "tags": ["Deep Learning", "CNN", "Computer Vision"],
+      "createdAt": 1726358400000,
+      "readAt": 1727568000000
+    },
+    {
+      "id": "paper_2",
+      "projectId": "proj_1",
+      "title": "EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks",
+      "authors": "Tan, M., Le, Q. V.",
+      "journal": "ICML 2019",
+      "year": 2019,
+      "pdfPath": "assets/pdf/efficientnet.pdf",
+      "status": "reading",
+      "importance": "critical",
+      "notes": "Currently evaluating for medical imaging project. Compound scaling method balances depth, width, resolution. Achieves better accuracy with fewer parameters than ResNet",
+      "keyTakeaways": [
+        "Compound scaling: uniformly scale depth, width, and resolution with fixed ratio",
+        "EfficientNet-B7: 84.3% top-1 accuracy on ImageNet, 8.4x smaller and 6.1x faster than best existing CNN",
+        "Mobile-friendly: EfficientNet-B0 has only 5.3M parameters",
+        "Key for medical imaging: better parameter efficiency on limited data"
+      ],
+      "tags": ["Deep Learning", "CNN", "Model Scaling", "Efficiency"],
+      "createdAt": 1728345600000,
+      "readAt": null
+    },
+    {
+      "id": "paper_3",
+      "projectId": "proj_1",
+      "title": "CheXNet: Radiologist-Level Pneumonia Detection on Chest X-Rays with Deep Learning",
+      "authors": "Rajpurkar, P., et al.",
+      "journal": "arXiv 2017",
+      "year": 2017,
+      "pdfPath": "assets/pdf/chexnet.pdf",
+      "status": "to-read",
+      "importance": "high",
+      "notes": "Directly relevant to our medical imaging application. Uses DenseNet-121. Need to understand their evaluation methodology",
+      "keyTakeaways": [],
+      "tags": ["Medical AI", "Chest X-ray", "Deep Learning", "Pneumonia"],
+      "createdAt": 1730419200000,
+      "readAt": null
+    },
+    {
+      "id": "paper_4",
+      "projectId": "proj_2",
+      "title": "Attention Is All You Need",
+      "authors": "Vaswani, A., Shazeer, N., Parmar, N., et al.",
+      "journal": "NeurIPS 2017",
+      "year": 2017,
+      "pdfPath": "assets/pdf/transformer.pdf",
+      "status": "read",
+      "importance": "critical",
+      "notes": "Foundation of all modern NLP. Must understand transformer architecture before fine-tuning BERT on legal texts",
+      "keyTakeaways": [
+        "Self-attention mechanism: relate positions in sequence to compute representation",
+        "Multi-head attention: jointly attend to info from different representation subspaces",
+        "Positional encodings: inject sequence order information",
+        "Parallelizable: no recurrence, much faster training than RNNs/LSTMs",
+        "Scaled dot-product attention: O(n²) complexity in sequence length"
+      ],
+      "tags": ["NLP", "Transformers", "Attention", "Deep Learning"],
+      "createdAt": 1735948800000,
+      "readAt": 1736467200000
+    },
+    {
+      "id": "paper_5",
+      "projectId": "proj_2",
+      "title": "LEGAL-BERT: The Muppets straight out of Law School",
+      "authors": "Chalkidis, I., Fergadiotis, M., Malakasiotis, P., et al.",
+      "journal": "Findings of EMNLP 2020",
+      "year": 2020,
+      "pdfPath": "assets/pdf/legal-bert.pdf",
+      "status": "reading",
+      "importance": "critical",
+      "notes": "Pre-trained on legal corpora (EU legislation, US case law, contracts). Outperforms vanilla BERT on legal NLP tasks by 10-15% F1. This is our base model",
+      "keyTakeaways": [
+        "Pre-trained on 12GB of legal text (EU, US, UK)",
+        "Domain-specific vocabulary: captures legal terminology better",
+        "Average 15% F1 improvement over BERT-base on legal tasks",
+        "Available on HuggingFace: nlpaueb/legal-bert-base-uncased"
+      ],
+      "tags": ["NLP", "Legal Tech", "BERT", "Domain Adaptation"],
+      "createdAt": 1736467200000,
+      "readAt": null
+    },
+    {
+      "id": "paper_6",
+      "projectId": "proj_2",
+      "title": "ContractNLI: A Dataset for Document-level Natural Language Inference for Contracts",
+      "authors": "Koreeda, Y., Manning, C. D.",
+      "journal": "Findings of EMNLP 2021",
+      "year": 2021,
+      "pdfPath": "assets/pdf/contractnli.pdf",
+      "status": "to-read",
+      "importance": "high",
+      "notes": "Potential dataset for evaluation. 607 contracts annotated for NLI tasks. Could be useful benchmark",
+      "keyTakeaways": [],
+      "tags": ["NLP", "Legal Tech", "Contracts", "Dataset"],
+      "createdAt": 1736467200000,
+      "readAt": null
+    }
+  ]
+}

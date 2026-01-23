@@ -1,0 +1,13 @@
+/**
+ * Global Styles
+ * 
+ * Imports existing CSS from the static site
+ * Preserves all styling during migration
+ */
+
+/* Import existing stylesheets */
+@import url('/css/theme.css');
+@import url('/css/main.css');
+@import url('/css/blockEditorEnhanced.css');
+
+/* Additional Next.js specific styles can go here */

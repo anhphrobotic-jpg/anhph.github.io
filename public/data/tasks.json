@@ -1,0 +1,92 @@
+{
+  "tasks": [
+    {
+      "id": "task_1",
+      "projectId": "proj_1",
+      "title": "Collect and preprocess chest X-ray dataset",
+      "description": "Gather 10,000 labeled chest X-rays from NIH and CheXpert datasets. Preprocess: resize to 512x512, normalize, augment",
+      "type": "data",
+      "status": "done",
+      "priority": "high",
+      "dueDate": "2025-10-15",
+      "createdAt": 1726358400000,
+      "completedAt": 1728950400000,
+      "notes": ""
+    },
+    {
+      "id": "task_2",
+      "projectId": "proj_1",
+      "title": "Implement EfficientNet baseline model",
+      "description": "Code EfficientNet-B4 with transfer learning from ImageNet. Train initial model on preprocessed dataset",
+      "type": "implementation",
+      "status": "done",
+      "priority": "high",
+      "dueDate": "2025-11-01",
+      "createdAt": 1728345600000,
+      "completedAt": 1730419200000,
+      "notes": ""
+    },
+    {
+      "id": "task_3",
+      "projectId": "proj_1",
+      "title": "Run data augmentation ablation study",
+      "description": "Test combinations: rotation (±15°), zoom (0.9-1.1), horizontal flip, contrast adjustment. Measure impact on validation accuracy",
+      "type": "experiment",
+      "status": "in-progress",
+      "priority": "high",
+      "dueDate": "2026-01-30",
+      "createdAt": 1735948800000,
+      "completedAt": null,
+      "notes": ""
+    },
+    {
+      "id": "task_4",
+      "projectId": "proj_1",
+      "title": "Submit IRB amendment for hospital dataset",
+      "description": "Prepare and submit IRB amendment request for access to 5,000 additional X-rays from local hospital partner",
+      "type": "admin",
+      "status": "in-progress",
+      "priority": "medium",
+      "dueDate": "2026-01-25",
+      "createdAt": 1735084800000,
+      "completedAt": null,
+      "notes": ""
+    },
+    {
+      "id": "task_5",
+      "projectId": "proj_2",
+      "title": "Literature review on legal NLP systems",
+      "description": "Survey existing work on contract analysis, clause extraction, risk assessment using NLP. Focus on transformer-based approaches",
+      "type": "research",
+      "status": "done",
+      "priority": "high",
+      "dueDate": "2026-01-15",
+      "createdAt": 1735948800000,
+      "completedAt": 1736899200000
+    },
+    {
+      "id": "task_6",
+      "projectId": "proj_2",
+      "title": "Meet with legal expert on annotation guidelines",
+      "description": "Schedule consultation with domain expert to define what constitutes 'key clauses' and 'legal risks' for annotation task",
+      "type": "meeting",
+      "status": "todo",
+      "priority": "high",
+      "dueDate": "2026-01-25",
+      "createdAt": 1736467200000,
+      "completedAt": null
+    },
+    {
+      "id": "task_7",
+      "projectId": "proj_2",
+      "title": "Annotate 100 sample contracts",
+      "description": "Using agreed guidelines, manually annotate 100 contracts for key clauses (definitions, obligations, termination, liability) and risks",
+      "type": "data",
+      "status": "todo",
+      "priority": "high",
+      "dueDate": "2026-02-10",
+      "createdAt": 1736467200000,
+      "completedAt": null
+    }
+  ]
+}
