@@ -5,15 +5,20 @@ window.App = {
     async init() {
         console.log('Initializing Research Workspace...');
         
-        // Load all data
+        // Load all data (localStorage first, then JSON files as fallback)
         try {
             await DataStore.loadAll();
-            // Load any persisted edits from localStorage
-            DataStore.loadPersistedData();
-            console.log('Data loaded successfully');
+            console.log('✓ Data loaded successfully');
+            console.log('  Projects:', DataStore.data.projects.length);
+            console.log('  Tasks:', DataStore.data.tasks.length);
+            console.log('  Papers:', DataStore.data.papers.length);
+            console.log('  Whiteboards:', DataStore.data.whiteboards.length);
         } catch (error) {
             console.error('Error loading data:', error);
         }
+        
+        // Auto-backup to Cloudinary every 5 minutes
+        this.setupAutoBackup();
         
         // Initialize theme
         const theme = Storage.getTheme();
@@ -135,6 +140,98 @@ window.App = {
     
     navigate(path) {
         window.location.hash = path;
+    },
+    
+    setupAutoBackup() {
+        // Periodic backup every 2 minutes (as safety net)
+        setInterval(async () => {
+            try {
+                console.log('⏰ Periodic backup to Cloudinary...');
+                this.showSaveIndicator('saving');
+                await DataStore.backupToCloudinary();
+                this.showSaveIndicator('saved');
+                console.log('✓ Periodic backup complete');
+            } catch (error) {
+                console.error('Periodic backup failed:', error);
+                this.showSaveIndicator('error');
+            }
+        }, 2 * 60 * 1000); // 2 minutes
+        
+        // Also backup when user leaves the page
+        window.addEventListener('beforeunload', async () => {
+            try {
+                await DataStore.backupToCloudinary();
+            } catch (error) {
+                console.error('Backup on exit failed:', error);
+            }
+        });
+    },
+    
+    showSaveIndicator(state) {
+        let indicator = document.getElementById('saveIndicator');
+        
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.id = 'saveIndicator';
+            indicator.className = 'save-indicator';
+            document.body.appendChild(indicator);
+        }
+        
+        indicator.className = 'save-indicator ' + state;
+        
+        if (state === 'saving') {
+            indicator.innerHTML = '☁️ Đang lưu...';
+        } else if (state === 'saved') {
+            indicator.innerHTML = '✓ Đã lưu';
+            setTimeout(() => {
+                indicator.classList.add('fade-out');
+                setTimeout(() => {
+                    indicator.classList.remove('fade-out');
+                    indicator.className = 'save-indicator';
+                }, 1000);
+            }, 2000);
+        } else if (state === 'error') {
+            indicator.innerHTML = '⚠️ Lỗi lưu';
+            setTimeout(() => {
+                indicator.classList.add('fade-out');
+                setTimeout(() => {
+                    indicator.classList.remove('fade-out');
+                    indicator.className = 'save-indicator';
+                }, 1000);
+            }, 3000);
+        }
+    },
+    
+    async manualBackup() {
+        try {
+            UI.showToast('Backing up to Cloudinary...', 'info');
+            const result = await DataStore.backupToCloudinary();
+            UI.showToast('✓ Backup successful!', 'success');
+            return result;
+        } catch (error) {
+            UI.showToast('Backup failed: ' + error.message, 'error');
+            throw error;
+        }
+    },
+    
+    async restoreBackup(backupUrl) {
+        if (!confirm('This will replace all current data. Continue?')) {
+            return;
+        }
+        
+        try {
+            UI.showToast('Restoring from backup...', 'info');
+            await DataStore.restoreFromCloudinary(backupUrl);
+            UI.showToast('✓ Restore successful! Reloading...', 'success');
+            
+            // Reload the page to reflect changes
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } catch (error) {
+            UI.showToast('Restore failed: ' + error.message, 'error');
+            throw error;
+        }
     }
 };
 
